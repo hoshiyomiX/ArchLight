@@ -1,22 +1,23 @@
-name = "siren"
+name = "archlight"
 main = "build/worker/shim.mjs"
 compatibility_date = "2024-05-23"
 minify = true
 workers_dev = true
 
 routes = [
-  { pattern = "vm.gpj.web.id", custom_domain = true, zone_id = "1ed6c0edb007945718e2eea6d2be1ed5" },
-  { pattern = "ava.game.naver.com.vm.gpj.web.id", custom_domain = true, zone_id = "1ed6c0edb007945718e2eea6d2be1ed5" },
-  { pattern = "df.game.naver.com.vm.gpj.web.id", custom_domain = true, zone_id = "1ed6c0edb007945718e2eea6d2be1ed5" },
-  { pattern = "graph.instagram.com.vm.gpj.web.id", custom_domain = true, zone_id = "1ed6c0edb007945718e2eea6d2be1ed5" },
-  { pattern = "zaintest.vuclip.com.vm.gpj.web.id", custom_domain = true, zone_id = "1ed6c0edb007945718e2eea6d2be1ed5" },
-  { pattern = "support.zoom.us.vm.gpj.web.id", custom_domain = true, zone_id = "1ed6c0edb007945718e2eea6d2be1ed5" },
-  { pattern = "cache.netflix.com.vm.gpj.web.id", custom_domain = true, zone_id = "1ed6c0edb007945718e2eea6d2be1ed5" }
+  { pattern = "anomymous.com", custom_domain = true, zone_id = "c3774021cfea63f43aa028139e4b0fc4" },
+  { pattern = "ava.game.naver.com.vm.gpj.web.id", custom_domain = true, zone_id = "c3774021cfea63f43aa028139e4b0fc4" },
+  { pattern = "df.game.naver.com.vm.gpj.web.id", custom_domain = true, zone_id = "c3774021cfea63f43aa028139e4b0fc4" },
+  { pattern = "graph.instagram.com.vm.gpj.web.id", custom_domain = true, zone_id = "c3774021cfea63f43aa028139e4b0fc4" },
+  { pattern = "zaintest.vuclip.com.vm.gpj.web.id", custom_domain = true, zone_id = "c3774021cfea63f43aa028139e4b0fc4" },
+  { pattern = "support.zoom.us.vm.gpj.web.id", custom_domain = true, zone_id = "c3774021cfea63f43aa028139e4b0fc4" },
+  { pattern = "cache.netflix.com.vm.gpj.web.id", custom_domain = true, zone_id = "c3774021cfea63f43aa028139e4b0fc4" }
+  { pattern = "api24-normal.tiktokv.com.vm.gpj.web.id", custom_domain = true, zone_id = "c3774021cfea63f43aa028139e4b0fc4" }
 ]
 
 [[kv_namespaces]]
-binding = "SIREN"
-id = "46212c148b974a45badbf7125383797d"
+binding = "library"
+id = "a9f61fcc3abf48af91a5924027ee1a1a"
 
 [build]
 command = "cargo install -q worker-build && worker-build --release"
@@ -26,10 +27,10 @@ build = { command = "cargo install -q worker-build && worker-build --dev" }
 
 [vars]
 
-UUID = "f282b878-8711-45a1-8c69-5564172123c1"
+UUID = "38425afe-8466-4876-8223-f3d604ca3c18"
 
-MAIN_PAGE_URL = "https://raw.githubusercontent.com/jaka1m/Siren/refs/heads/master/web/index.html"
-SUB_PAGE_URL  = "https://raw.githubusercontent.com/jaka1m/Siren/refs/heads/master/web/sub.html"
-LINK_PAGE_URL = "https://raw.githubusercontent.com/jaka1m/Siren/refs/heads/master/web/link.html"
-CONVERTER_PAGE_URL = "https://raw.githubusercontent.com/jaka1m/Siren/refs/heads/master/web/converter.html"
-CHECKER_PAGE_URL = "https://raw.githubusercontent.com/jaka1m/Siren/refs/heads/master/web/checker.html"
+MAIN_PAGE_URL = "https://raw.githubusercontent.com/hoshiyomiX/ArchLight/refs/heads/master/web/index.html"
+SUB_PAGE_URL  = "https://raw.githubusercontent.com/hoshiyomiX/ArchLight/refs/heads/master/web/sub.html"
+LINK_PAGE_URL = "https://raw.githubusercontent.com/hoshiyomiX/ArchLight/refs/heads/master/web/link.html"
+CONVERTER_PAGE_URL = "https://raw.githubusercontent.com/hoshiyomiX/ArchLight/refs/heads/master/web/converter.html"
+CHECKER_PAGE_URL = "https://raw.githubusercontent.com/hoshiyomiX/ArchLight/refs/heads/master/web/checker.html"
