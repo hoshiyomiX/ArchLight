@@ -1,7 +1,6 @@
 use crate::config::Config;
 
 use std::pin::Pin;
-use std::task::{Context, Poll};
 use bytes::{BufMut, BytesMut};
 use futures_util::Stream;
 use pin_project_lite::pin_project;
@@ -41,17 +40,35 @@ impl<'a> ProxyStream<'a> {
             match self.events.next().await {
                 Some(Ok(WebsocketEvent::Message(msg))) => {
                     if let Some(data) = msg.bytes() {
+                        if data.len() > MAX_WEBSOCKET_SIZE {
+                            return Err(std::io::Error::new(
+                                std::io::ErrorKind::Other,
+                                "websocket message too large"
+                            ));
+                        }
+                        if self.buffer.len() + data.len() > MAX_BUFFER_SIZE {
+                            return Err(std::io::Error::new(
+                                std::io::ErrorKind::Other,
+                                "buffer overflow"
+                            ));
+                        }
                         self.buffer.put_slice(&data);
                     }
                 }
                 Some(Ok(WebsocketEvent::Close(_))) => {
-                    break;
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::UnexpectedEof,
+                        "websocket closed"
+                    ));
                 }
                 Some(Err(e)) => {
                     return Err(std::io::Error::new(std::io::ErrorKind::Other, e.to_string()));
                 }
                 None => {
-                    break;
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::UnexpectedEof,
+                        "stream ended"
+                    ));
                 }
             }
         }
@@ -90,10 +107,13 @@ impl<'a> ProxyStream<'a> {
     }
 
     pub fn is_vless(&self, buffer: &[u8]) -> bool {
-        buffer[0] == 0
+        !buffer.is_empty() && buffer[0] == 0
     }
 
     fn is_shadowsocks(&self, buffer: &[u8]) -> bool {
+        if buffer.is_empty() {
+            return false;
+        }
         match buffer[0] {
             1 => { // IPv4
                 if buffer.len() < 7 {
@@ -132,27 +152,39 @@ impl<'a> ProxyStream<'a> {
     }
 
     fn is_vmess(&self, buffer: &[u8]) -> bool {
-        buffer.len() > 0 // fallback
+        // Improved VMess detection - check for VMess header format
+        buffer.len() >= 1 && buffer[0] == 1
     }
 
     pub async fn handle_tcp_outbound(&mut self, addr: String, port: u16) -> Result<()> {
+        console_log!("Connecting to TCP {}:{}", addr, port);
+        
         let mut remote_socket = Socket::builder().connect(&addr, port).map_err(|e| {
-            Error::RustError(e.to_string())
+            Error::RustError(format!("Failed to connect to {}:{}: {}", addr, port, e))
         })?;
 
         remote_socket.opened().await.map_err(|e| {
-            Error::RustError(e.to_string())
+            Error::RustError(format!("Failed to open connection to {}:{}: {}", addr, port, e))
         })?;
 
-        tokio::io::copy_bidirectional(self, &mut remote_socket)
-            .await
-            .map(|(a_to_b, b_to_a)| {
-                console_log!("copied data from {}:{}, up: {} and dl: {}", &addr, &port, convert(a_to_b as f64), convert(b_to_a as f64));
-            })
-            .map_err(|e| {
-                Error::RustError(e.to_string())
-            })?;
-        Ok(())
+        let result = tokio::io::copy_bidirectional(self, &mut remote_socket).await;
+        
+        match result {
+            Ok((a_to_b, b_to_a)) => {
+                console_log!(
+                    "TCP connection {}:{} closed - up: {}, down: {}", 
+                    addr, 
+                    port, 
+                    convert(a_to_b as f64), 
+                    convert(b_to_a as f64)
+                );
+                Ok(())
+            }
+            Err(e) => {
+                console_error!("TCP connection {}:{} error: {}", addr, port, e);
+                Err(Error::RustError(format!("TCP connection error: {}", e)))
+            }
+        }
     }
 
     pub async fn handle_udp_outbound(&mut self) -> Result<()> {
@@ -160,9 +192,20 @@ impl<'a> ProxyStream<'a> {
 
         let n = self.read(&mut buff).await?;
         let data = &buff[..n];
-        if crate::dns::doh(data).await.is_ok() {
-            self.write(&data).await?;
-        };
+        
+        console_log!("Processing UDP packet of {} bytes", data.len());
+        
+        // Handle DNS over HTTPS
+        match crate::dns::doh(data).await {
+            Ok(response) => {
+                console_log!("DNS query resolved successfully");
+                self.write(&response).await?;
+            }
+            Err(e) => {
+                console_error!("DNS resolution failed: {}", e);
+                return Err(Error::RustError(format!("DNS resolution failed: {}", e)));
+            }
+        }
         Ok(())
     }
 }
@@ -186,7 +229,10 @@ impl<'a> AsyncRead for ProxyStream<'a> {
                 Poll::Ready(Some(Ok(WebsocketEvent::Message(msg)))) => {
                     if let Some(data) = msg.bytes() {
                         if data.len() > MAX_WEBSOCKET_SIZE {
-                            return Poll::Ready(Err(std::io::Error::new(std::io::ErrorKind::Other, "websocket buffer too long")))
+                            return Poll::Ready(Err(std::io::Error::new(
+                                std::io::ErrorKind::Other,
+                                "websocket message too large"
+                            )));
                         }
                         
                         if this.buffer.len() + data.len() > MAX_BUFFER_SIZE {
@@ -197,38 +243,19 @@ impl<'a> AsyncRead for ProxyStream<'a> {
                         this.buffer.put_slice(&data);
                     }
                 }
-                Poll::Pending => return Poll::Pending,
-                _ => return Poll::Ready(Ok(())),
-            }
-        }
-    }
-}
-
-impl<'a> AsyncWrite for ProxyStream<'a> {
-    fn poll_write(
-        self: Pin<&mut Self>,
-        _: &mut Context<'_>,
-        buf: &[u8],
-    ) -> Poll<tokio::io::Result<usize>> {
-        return Poll::Ready(
-            self.ws
-                .send_with_bytes(buf)
-                .map(|_| buf.len())
-                .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e.to_string())),
-        );
-    }
-
-    fn poll_flush(self: Pin<&mut Self>, _: &mut Context<'_>) -> Poll<tokio::io::Result<()>> {
-        Poll::Ready(Ok(()))
-    }
-
-    fn poll_shutdown(self: Pin<&mut Self>, _: &mut Context<'_>) -> Poll<tokio::io::Result<()>> {
-        match self.ws.close(Some(1000), Some("shutdown".to_string())) {
-            Ok(_) => Poll::Ready(Ok(())),
-            Err(e) => Poll::Ready(Err(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                e.to_string(),
-            ))),
-        }
-    }
-}
+                Poll::Ready(Some(Ok(WebsocketEvent::Close(_)))) => {
+                    return Poll::Ready(Err(std::io::Error::new(
+                        std::io::ErrorKind::UnexpectedEof,
+                        "websocket closed"
+                    )));
+                }
+                Poll::Ready(Some(Err(e))) => {
+                    return Poll::Ready(Err(std::io::Error::new(
+                        std::io::ErrorKind::Other,
+                        e.to_string()
+                    )));
+                }
+                Poll::Ready(None) => {
+                    return Poll::Ready(Err(std::io::Error::new(
+                        std::io::ErrorKind::UnexpectedEof,
+                        "stream ended"
