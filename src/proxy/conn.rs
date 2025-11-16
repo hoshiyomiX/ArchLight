@@ -1,6 +1,7 @@
 use crate::config::Config;
 
 use std::pin::Pin;
+use std::task::{Context, Poll};  // Added missing imports
 use bytes::{BufMut, BytesMut};
 use futures_util::Stream;
 use pin_project_lite::pin_project;
@@ -213,7 +214,7 @@ impl<'a> ProxyStream<'a> {
 impl<'a> AsyncRead for ProxyStream<'a> {
     fn poll_read(
         self: Pin<&mut Self>,
-        cx: &mut Context<'_>,
+        cx: &mut Context,
         buf: &mut ReadBuf<'_>,
     ) -> Poll<tokio::io::Result<()>> {
         let mut this = self.project();
@@ -270,7 +271,7 @@ impl<'a> AsyncRead for ProxyStream<'a> {
 impl<'a> AsyncWrite for ProxyStream<'a> {
     fn poll_write(
         self: Pin<&mut Self>,
-        _: &mut Context<'_>,
+        _cx: &mut Context,
         buf: &[u8],
     ) -> Poll<tokio::io::Result<usize>> {
         // Note: This is a simplified implementation. In a real-world scenario,
@@ -293,11 +294,11 @@ impl<'a> AsyncWrite for ProxyStream<'a> {
         }
     }
 
-    fn poll_flush(self: Pin<&mut Self>, _: &mut Context<'_>) -> Poll<tokio::io::Result<()>> {
+    fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context) -> Poll<tokio::io::Result<()>> {
         Poll::Ready(Ok(()))
     }
 
-    fn poll_shutdown(self: Pin<&mut Self>, _: &mut Context<'_>) -> Poll<tokio::io::Result<()>> {
+    fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context) -> Poll<tokio::io::Result<()>> {
         match self.ws.close(Some(1000), Some("shutdown".to_string())) {
             Ok(_) => Poll::Ready(Ok(())),
             Err(e) => Poll::Ready(Err(std::io::Error::new(
