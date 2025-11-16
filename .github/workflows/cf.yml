@@ -47,137 +47,29 @@ jobs:
         run: cargo install -q worker-build --force
 
       - name: Check worker-build installation
-        run: which worker-build && worker-build --version || echo "worker-build not found"
+        run: which worker-build
 
       - name: Fix UUID dependency for WASM
         run: |
           sed -i 's/uuid = { version = "1.16", features = \["v4"\] }/uuid = { version = "1.16", features = ["v4", "js"] }/' Cargo.toml
-          echo "Fixed UUID dependency in Cargo.toml"
 
-      - name: Print environment info
-        run: |
-          echo "Rust version:"
-          rustc --version
-          echo "Cargo version:"
-          cargo --version
-          echo "Wasm target:"
-          rustc --print target-list | grep wasm32
-
-      - name: Print project structure
-        run: |
-          echo "Project structure:"
-          find . -type f -name "*.rs" | head -20
-          echo "Cargo.toml content:"
-          cat Cargo.toml
-
-      - name: Build with verbose output
-        run: |
-          echo "Starting build with verbose output..."
-          RUST_BACKTRACE=1 worker-build --release --verbose
-        continue-on-error: true
-
-      - name: Check build artifacts
-        run: |
-          echo "Checking build artifacts..."
-          ls -la build/
-          if [ -f "build/worker.js" ]; then
-            echo "worker.js exists, size: $(wc -c < build/worker.js)"
-          else
-            echo "worker.js not found"
-          fi
-          if [ -f "build/worker.wasm" ]; then
-            echo "worker.wasm exists, size: $(wc -c < build/worker.wasm)"
-          else
-            echo "worker.wasm not found"
-          fi
+      - name: Auto-fix warnings
+        run: cargo fix --lib --allow-dirty
 
       - name: Poison the cache
         run: |
-          echo "Attempting to poison cache..."
           worker-build --release || true
-          WASM_BINDGEN_CACHE_PATH=$(find ~/.cache/worker-build -type f -name "wasm-bindgen" 2>/dev/null | head -1)
-          if [ -n "$WASM_BINDGEN_CACHE_PATH" ]; then
-            echo "Found wasm-bindgen at: $WASM_BINDGEN_CACHE_PATH"
-            cp "$(which wasm-bindgen)" "$WASM_BINDGEN_CACHE_PATH"
-            echo "Cache poisoned successfully"
-          else
-            echo "No wasm-bindgen found in cache"
-          fi
+          WASM_BINDGEN_CACHE_PATH=$(find ~/.cache/worker-build -type f -name "wasm-bindgen")
+          echo "Found wasm-bindgen at: $WASM_BINDGEN_CACHE_PATH"
+          cp "$(which wasm-bindgen)" "$WASM_BINDGEN_CACHE_PATH"
 
-      - name: Build again after cache poisoning
-        run: |
-          echo "Building again after cache poisoning..."
-          RUST_BACKTRACE=1 worker-build --release
-        continue-on-error: true
-
-      - name: Final build artifacts check
-        run: |
-          echo "Final build artifacts check:"
-          ls -la build/
-          if [ -f "build/worker.js" ]; then
-            echo "Final worker.js size: $(wc -c < build/worker.js)"
-            head -20 build/worker.js
-          else
-            echo "ERROR: worker.js not found after build"
-            exit 1
-          fi
+      - name: Build
+        run: worker-build --release
 
       - name: Remove build command from wrangler.toml
-        run: |
-          echo "Removing build command from wrangler.toml..."
-          if [ -f "wrangler.toml" ]; then
-            cp wrangler.toml wrangler.toml.backup
-            sed -i '/^\[build\]$/,/^command/d' wrangler.toml
-            echo "wrangler.toml after modification:"
-            cat wrangler.toml
-          else
-            echo "wrangler.toml not found"
-          fi
+        run: sed -i '/^\[build\]$/,/^command/d' wrangler.toml
 
-      - name: Print Wrangler configuration
-        run: |
-          echo "Wrangler configuration:"
-          if [ -f "wrangler.toml" ]; then
-            cat wrangler.toml
-          else
-            echo "wrangler.toml not found"
-          fi
-
-      - name: Deploy with debug logging
+      - name: Deploy
         uses: cloudflare/wrangler-action@v3.4.0
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        env:
-          WRANGLER_LOG_LEVEL: debug
-
-      - name: Get Worker URL
-        id: worker-url
-        run: |
-          echo "Getting worker URL..."
-          WORKER_URL=$(wrangler deployments list --json | jq -r '.[0].url' 2>/dev/null || echo "https://unknown")
-          echo "Worker URL: $WORKER_URL"
-          echo "worker-url=$WORKER_URL" >> $GITHUB_OUTPUT
-
-      - name: Test Worker Health
-        run: |
-          echo "Testing worker health..."
-          WORKER_URL="${{ steps.worker-url.outputs.worker-url }}"
-          if [ "$WORKER_URL" != "https://unknown" ]; then
-            echo "Testing URL: $WORKER_URL"
-            curl -s -o /dev/null -w "%{http_code}" "$WORKER_URL" || echo "000"
-          else
-            echo "Cannot test - worker URL unknown"
-          fi
-
-      - name: Print deployment logs
-        run: |
-          echo "Fetching deployment logs..."
-          wrangler deployments tail --format=pretty || echo "Could not fetch logs"
-
-      - name: Print final status
-        run: |
-          echo "=== DEPLOYMENT SUMMARY ==="
-          echo "Worker URL: ${{ steps.worker-url.outputs.worker-url }}"
-          echo "Build artifacts:"
-          ls -la build/ 2>/dev/null || echo "No build directory"
-          echo "=== END SUMMARY ==="
