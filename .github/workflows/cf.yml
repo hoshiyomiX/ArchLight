@@ -17,11 +17,9 @@ jobs:
       - uses: actions/checkout@v4.1.1  # Pinned version
 
       - name: Setup Rust
-        uses: actions-rs/toolchain@v1.0.7  # Pinned version
+        uses: dtolnay/rust-toolchain@1.75.0  # Pinned to match Cargo.lock
         with:
-          toolchain: 1.75.0  # Specific Rust version
-          targets: wasm32-unknown-unknown
-          override: true
+          targets: wasm32-unknown-unknown  # Required for WebAssembly
 
       - name: Cache cargo registry
         uses: actions/cache@v4.0.0  # Pinned version
@@ -43,7 +41,7 @@ jobs:
             ${{ runner.os }}-worker-build-
 
       - name: Install wasm-bindgen-cli
-        run: cargo install -f wasm-bindgen-cli --version 0.2.100  # Pinned version
+        run: cargo install -f wasm-bindgen-cli --version 0.2.100  # Pinned to match Cargo.lock
 
       - name: Install worker-build
         run: cargo install -q worker-build --version 0.0.14  # Pinned version
