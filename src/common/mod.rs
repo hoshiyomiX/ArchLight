@@ -1,8 +1,9 @@
 pub mod hash;
 
 use std::net::{Ipv4Addr, Ipv6Addr};
-use tokio::io::{AsyncRead, AsyncReadExt};
 use worker::*;
+use md_5::Md5;  // Added missing import
+use sha2::Sha256;  // Added missing import
 
 pub const KDFSALT_CONST_VMESS_HEADER_PAYLOAD_LENGTH_AEAD_KEY: &[u8] =
     b"VMess Header AEAD Key_Length";
@@ -41,7 +42,14 @@ macro_rules! sha256 {
     }
 }
 
-pub async fn parse_addr<R: AsyncRead + std::marker::Unpin>(buf: &mut R) -> Result<String> {
+/// Parse an address from a buffer. Supports IPv4, IPv6, and domain names.
+/// 
+/// # Arguments
+/// * `buf` - AsyncRead buffer to read from
+/// 
+/// # Returns
+/// * `Result<String>` - Parsed address or error
+pub async fn parse_addr<R: futures::io::AsyncRead + std::marker::Unpin>(buf: &mut R) -> Result<String> {
     // combined addr type between Vmess, VLESS, and Trojan.
     // VLESS wouldn't connect to ipv6 address due to mismatch addr type
     let addr = match buf.read_u8().await? {
@@ -71,15 +79,22 @@ pub async fn parse_addr<R: AsyncRead + std::marker::Unpin>(buf: &mut R) -> Resul
             )
             .to_string()
         }
-        _ => {
-            return Err(Error::RustError("invalid address".to_string()));
+        addr_type => {
+            return Err(Error::RustError(format!("Invalid address type: {}", addr_type)));
         }
     };
 
     Ok(addr)
 }
 
-pub async fn parse_port<R: AsyncRead + std::marker::Unpin>(buf: &mut R) -> Result<u16> {
+/// Parse a port number from a buffer.
+/// 
+/// # Arguments
+/// * `buf` - AsyncRead buffer to read from
+/// 
+/// # Returns
+/// * `Result<u16>` - Parsed port number or error
+pub async fn parse_port<R: futures::io::AsyncRead + std::marker::Unpin>(buf: &mut R) -> Result<u16> {
     let mut port = [0u8; 2];
     buf.read_exact(&mut port).await?;
 
