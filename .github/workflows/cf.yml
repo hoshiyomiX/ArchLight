@@ -36,7 +36,7 @@ jobs:
         uses: actions/cache@v4.2.0
         with:
           path: ~/.cache/worker-build
-          key: ${{ runner.os }}-worker-build-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-worker-build-rust1.83.0
           restore-keys: |
             ${{ runner.os }}-worker-build-
 
@@ -44,10 +44,10 @@ jobs:
         run: cargo install -f wasm-bindgen-cli --version 0.2.100 --locked
 
       - name: Install worker-build
-        run: cargo install -q worker-build  # Install latest version without pinning
+        run: cargo install -q worker-build --force  # Added --force flag
 
       - name: Check worker-build installation
-        run: which worker-build  # Just verify it's installed, don't check version
+        run: which worker-build
 
       - name: Poison the cache
         run: |
