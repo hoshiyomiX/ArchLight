@@ -44,19 +44,23 @@ jobs:
         run: cargo install -f wasm-bindgen-cli --version 0.2.100 --locked
 
       - name: Install worker-build
-        run: cargo install -q worker-build --force  # Added --force flag
+        run: cargo install -q worker-build --force
 
       - name: Check worker-build installation
         run: which worker-build
 
+      - name: Fix UUID dependency for WASM
+        run: |
+          sed -i 's/uuid = { version = "1.16", features = \["v4"\] }/uuid = { version = "1.16", features = ["v4", "js"] }/' Cargo.toml
+
+      - name: Auto-fix warnings
+        run: cargo fix --lib --allow-dirty
+
       - name: Poison the cache
         run: |
-          # Run a build that is expected to fail to populate the cache
           worker-build --release || true
-          # Find the incorrect wasm-bindgen binary in the cache
           WASM_BINDGEN_CACHE_PATH=$(find ~/.cache/worker-build -type f -name "wasm-bindgen")
           echo "Found wasm-bindgen at: $WASM_BINDGEN_CACHE_PATH"
-          # Overwrite the incorrect cached binary with the correct one
           cp "$(which wasm-bindgen)" "$WASM_BINDGEN_CACHE_PATH"
 
       - name: Build
