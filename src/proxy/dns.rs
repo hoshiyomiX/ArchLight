@@ -20,12 +20,12 @@ pub async fn doh(req_wireformat: &[u8]) -> Result<Vec<u8>> {
     let request = Request::new_with_init(
         doh_url,
         RequestInit::new()
-            .method(Method::Post)
+            .with_method(Method::Post)
             .with_headers(headers)
             .with_body(Some(req_wireformat.to_vec().into()))
     )?;
     
-    let response = Fetch::UrlRequest(request).send().await?;
+    let response = Fetch::Request(request).send().await?;
     
     if response.status_code() != 200 {
         return Err(anyhow::anyhow!(
@@ -52,12 +52,12 @@ pub async fn doh_with_server(req_wireformat: &[u8], server_url: &str) -> Result<
     let request = Request::new_with_init(
         server_url,
         RequestInit::new()
-            .method(Method::Post)
+            .with_method(Method::Post)
             .with_headers(headers)
             .with_body(Some(req_wireformat.to_vec().into()))
     )?;
     
-    let response = Fetch::UrlRequest(request).send().await?;
+    let response = Fetch::Request(request).send().await?;
     
     if response.status_code() != 200 {
         return Err(anyhow::anyhow!(
