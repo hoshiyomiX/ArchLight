@@ -2,8 +2,9 @@ pub mod hash;
 
 use std::net::{Ipv4Addr, Ipv6Addr};
 use worker::*;
-use md_5::Md5;  // Added missing import
-use sha2::Sha256;  // Added missing import
+use md5::Md5;  // Corrected import name
+use sha2::Sha256;
+use tokio::io::{AsyncRead, AsyncReadExt};  // Using tokio which is already in dependencies
 
 pub const KDFSALT_CONST_VMESS_HEADER_PAYLOAD_LENGTH_AEAD_KEY: &[u8] =
     b"VMess Header AEAD Key_Length";
@@ -49,7 +50,7 @@ macro_rules! sha256 {
 /// 
 /// # Returns
 /// * `Result<String>` - Parsed address or error
-pub async fn parse_addr<R: futures::io::AsyncRead + std::marker::Unpin>(buf: &mut R) -> Result<String> {
+pub async fn parse_addr<R: AsyncRead + std::marker::Unpin>(buf: &mut R) -> Result<String> {
     // combined addr type between Vmess, VLESS, and Trojan.
     // VLESS wouldn't connect to ipv6 address due to mismatch addr type
     let addr = match buf.read_u8().await? {
@@ -94,7 +95,7 @@ pub async fn parse_addr<R: futures::io::AsyncRead + std::marker::Unpin>(buf: &mu
 /// 
 /// # Returns
 /// * `Result<u16>` - Parsed port number or error
-pub async fn parse_port<R: futures::io::AsyncRead + std::marker::Unpin>(buf: &mut R) -> Result<u16> {
+pub async fn parse_port<R: AsyncRead + std::marker::Unpin>(buf: &mut R) -> Result<u16> {
     let mut port = [0u8; 2];
     buf.read_exact(&mut port).await?;
 
