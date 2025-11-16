@@ -2,7 +2,6 @@ name: cf workers
 
 on:
   workflow_dispatch:
-
   push:
     branches:
       - master
@@ -15,18 +14,39 @@ jobs:
     runs-on: ubuntu-latest
     environment: cf
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.1.1  # Pinned version
 
       - name: Setup Rust
-        uses: actions-rs/toolchain@v1
+        uses: actions-rs/toolchain@v1.0.7  # Pinned version
         with:
-          toolchain: stable
+          toolchain: 1.75.0  # Specific Rust version
+          targets: wasm32-unknown-unknown
+          override: true
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4.0.0  # Pinned version
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            ~/.cargo/bin
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Cache worker-build
+        uses: actions/cache@v4.0.0  # Pinned version
+        with:
+          path: ~/.cache/worker-build
+          key: ${{ runner.os }}-worker-build-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-worker-build-
 
       - name: Install wasm-bindgen-cli
-        run: cargo install -f wasm-bindgen-cli --version 0.2.100
+        run: cargo install -f wasm-bindgen-cli --version 0.2.100  # Pinned version
 
       - name: Install worker-build
-        run: cargo install -q worker-build
+        run: cargo install -q worker-build --version 0.0.14  # Pinned version
 
       - name: Poison the cache
         run: |
@@ -45,6 +65,6 @@ jobs:
         run: sed -i '/^\[build\]$/,/^command/d' wrangler.toml
 
       - name: Deploy
-        uses: cloudflare/wrangler-action@v3
+        uses: cloudflare/wrangler-action@v3.4.0  # Pinned version
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
