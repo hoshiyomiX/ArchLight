@@ -1,75 +1,387 @@
-name: cf workers
+use crate::config::Config;
 
-on:
-  workflow_dispatch:
-  push:
-    branches:
-      - master
-    paths-ignore:
-      - 'README.md'
-      - 'LICENSE.md'
+use std::pin::Pin;
+use std::task::{Context, Poll};
+use bytes::{BufMut, BytesMut};
+use futures_util::Stream;
+use pin_project_lite::pin_project;
+use pretty_bytes::converter::convert;
+use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, ReadBuf};
+use worker::*;
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    environment: cf
-    steps:
-      - uses: actions/checkout@v4.1.1
+// Optimized buffer sizes for better performance
+static MAX_WEBSOCKET_SIZE: usize = 32 * 1024; // 32kb
+static MAX_BUFFER_SIZE: usize = 256 * 1024; // 256kb
+static PEEK_BUFFER_LEN: usize = 32; // 32 bytes for protocol detection
 
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@1.83.0
-        with:
-          targets: wasm32-unknown-unknown
+pin_project! {
+    pub struct ProxyStream<'a> {
+        pub config: Config,
+        pub ws: &'a WebSocket,
+        pub buffer: BytesMut,
+        #[pin]
+        pub events: EventStream<'a>,
+    }
+}
 
-      - name: Cache cargo registry
-        uses: actions/cache@v4.2.0
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            ~/.cargo/bin
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
+impl<'a> ProxyStream<'a> {
+    pub fn new(config: Config, ws: &'a WebSocket, events: EventStream<'a>) -> Self {
+        let buffer = BytesMut::with_capacity(MAX_BUFFER_SIZE);
 
-      - name: Cache worker-build
-        uses: actions/cache@v4.2.0
-        with:
-          path: ~/.cache/worker-build
-          key: ${{ runner.os }}-worker-build-rust1.83.0
-          restore-keys: |
-            ${{ runner.os }}-worker-build-
+        console_log!("=== DEBUG: ProxyStream::new ===");
+        console_log!("Config: proxy_addr={}, proxy_port={}", config.proxy_addr, config.proxy_port);
+        console_log!("Buffer capacity: {}", MAX_BUFFER_SIZE);
+        console_log!("========================");
 
-      - name: Install wasm-bindgen-cli
-        run: cargo install -f wasm-bindgen-cli --version 0.2.100 --locked
+        Self {
+            config,
+            ws,
+            buffer,
+            events,
+        }
+    }
+    
+    pub async fn fill_buffer_until(&mut self, n: usize) -> std::io::Result<()> {
+        use futures_util::StreamExt;
 
-      - name: Install worker-build
-        run: cargo install -q worker-build --force
+        console_log!("=== DEBUG: fill_buffer_until ===");
+        console_log!("Target bytes: {}, Current buffer: {}", n, self.buffer.len());
+        
+        while self.buffer.len() < n {
+            match self.events.next().await {
+                Some(Ok(WebsocketEvent::Message(msg))) => {
+                    if let Some(data) = msg.bytes() {
+                        console_log!("Received WebSocket message: {} bytes", data.len());
+                        console_log!("Message first 16 bytes: {:02x?}", &data[..std::cmp::min(16, data.len())]);
+                        
+                        if data.len() > MAX_WEBSOCKET_SIZE {
+                            console_error!("ERROR: WebSocket message too large: {} > {}", data.len(), MAX_WEBSOCKET_SIZE);
+                            return Err(std::io::Error::new(
+                                std::io::ErrorKind::Other,
+                                "websocket message too large"
+                            ));
+                        }
+                        if self.buffer.len() + data.len() > MAX_BUFFER_SIZE {
+                            console_error!("ERROR: Buffer overflow: {} + {} > {}", self.buffer.len(), data.len(), MAX_BUFFER_SIZE);
+                            return Err(std::io::Error::new(
+                                std::io::ErrorKind::Other,
+                                "buffer overflow"
+                            ));
+                        }
+                        self.buffer.put_slice(&data);
+                        console_log!("Buffer now has {} bytes", self.buffer.len());
+                    }
+                }
+                Some(Ok(WebsocketEvent::Close(_))) => {
+                    console_log!("WebSocket closed by client");
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::UnexpectedEof,
+                        "websocket closed"
+                    ));
+                }
+                Some(Err(e)) => {
+                    console_error!("ERROR: WebSocket error: {}", e);
+                    return Err(std::io::Error::new(std::io::ErrorKind::Other, e.to_string()));
+                }
+                None => {
+                    console_log!("WebSocket stream ended");
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::UnexpectedEof,
+                        "stream ended"
+                    ));
+                }
+            }
+        }
+        console_log!("Buffer filled successfully: {} bytes", self.buffer.len());
+        console_log!("===============================");
+        Ok(())
+    }
 
-      - name: Check worker-build installation
-        run: which worker-build
+    pub fn peek_buffer(&self, n: usize) -> &[u8] {
+        let len = self.buffer.len().min(n);
+        &self.buffer[..len]
+    }
 
-      - name: Fix UUID dependency for WASM
-        run: |
-          sed -i 's/uuid = { version = "1.16", features = \["v4"\] }/uuid = { version = "1.16", features = ["v4", "js"] }/' Cargo.toml
+    pub async fn process(&mut self) -> Result<()> {
+        console_log!("=== DEBUG: Starting process ===");
+        
+        let peek_buffer_len = PEEK_BUFFER_LEN;
+        console_log!("Attempting to fill buffer with {} bytes", peek_buffer_len);
+        
+        match self.fill_buffer_until(peek_buffer_len).await {
+            Ok(_) => {
+                console_log!("Buffer filled successfully");
+                let peeked_buffer = self.peek_buffer(peek_buffer_len);
+                console_log!("Peeked buffer length: {}", peeked_buffer.len());
 
-      - name: Auto-fix warnings
-        run: cargo fix --lib --allow-dirty
+                if peeked_buffer.len() < (peek_buffer_len/2) {
+                    console_error!("ERROR: Not enough buffer: got {} bytes, expected at least {}", peeked_buffer.len(), peek_buffer_len/2);
+                    return Err(Error::RustError("not enough buffer".to_string()));
+                }
 
-      - name: Poison the cache
-        run: |
-          worker-build --release || true
-          WASM_BINDGEN_CACHE_PATH=$(find ~/.cache/worker-build -type f -name "wasm-bindgen")
-          echo "Found wasm-bindgen at: $WASM_BINDGEN_CACHE_PATH"
-          cp "$(which wasm-bindgen)" "$WASM_BINDGEN_CACHE_PATH"
+                // Log the first few bytes for debugging
+                console_log!("First 16 bytes of buffer: {:02x?}", &peeked_buffer[..std::cmp::min(16, peeked_buffer.len())]);
 
-      - name: Build
-        run: worker-build --release
+                if self.is_vless(peeked_buffer) {
+                    console_log!("PROTOCOL DETECTED: VLESS");
+                    self.process_vless().await
+                } else if self.is_shadowsocks(peeked_buffer) {
+                    console_log!("PROTOCOL DETECTED: Shadowsocks");
+                    self.process_shadowsocks().await
+                } else if self.is_trojan(peeked_buffer) {
+                    console_log!("PROTOCOL DETECTED: Trojan");
+                    self.process_trojan().await
+                } else if self.is_vmess(peeked_buffer) {
+                    console_log!("PROTOCOL DETECTED: VMess");
+                    self.process_vmess().await
+                } else {
+                    console_error!("ERROR: Protocol not implemented. First byte: {:02x}", peeked_buffer[0]);
+                    console_error!("Full buffer content: {:02x?}", peeked_buffer);
+                    Err(Error::RustError("protocol not implemented".to_string()))
+                }
+            }
+            Err(e) => {
+                console_error!("ERROR: Failed to fill buffer: {}", e);
+                Err(Error::RustError(format!("Failed to fill buffer: {}", e)))
+            }
+        }
+    }
 
-      - name: Remove build command from wrangler.toml
-        run: sed -i '/^\[build\]$/,/^command/d' wrangler.toml
+    pub fn is_vless(&self, buffer: &[u8]) -> bool {
+        let result = !buffer.is_empty() && buffer[0] == 0;
+        console_log!("VLESS detection: first_byte={:02x}, result={}", buffer[0], result);
+        result
+    }
 
-      - name: Deploy
-        uses: cloudflare/wrangler-action@v3.4.0
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    fn is_shadowsocks(&self, buffer: &[u8]) -> bool {
+        if buffer.is_empty() {
+            console_log!("Shadowsocks detection: buffer empty");
+            return false;
+        }
+        let result = match buffer[0] {
+            1 => { // IPv4
+                if buffer.len() < 7 {
+                    console_log!("Shadowsocks: IPv4 buffer too short");
+                    false
+                } else {
+                    let remote_port = u16::from_be_bytes([buffer[5], buffer[6]]);
+                    console_log!("Shadowsocks: IPv4, port={}", remote_port);
+                    remote_port != 0
+                }
+            }
+            3 => { // Domain name
+                if buffer.len() < 2 {
+                    console_log!("Shadowsocks: Domain buffer too short");
+                    false
+                } else {
+                    let domain_len = buffer[1] as usize;
+                    if buffer.len() < 2 + domain_len + 2 {
+                        console_log!("Shadowsocks: Domain buffer too short for domain");
+                        false
+                    } else {
+                        let remote_port = u16::from_be_bytes([
+                            buffer[2 + domain_len],
+                            buffer[2 + domain_len + 1],
+                        ]);
+                        console_log!("Shadowsocks: Domain, port={}", remote_port);
+                        remote_port != 0
+                    }
+                }
+            }
+            4 => { // IPv6
+                if buffer.len() < 19 {
+                    console_log!("Shadowsocks: IPv6 buffer too short");
+                    false
+                } else {
+                    let remote_port = u16::from_be_bytes([buffer[17], buffer[18]]);
+                    console_log!("Shadowsocks: IPv6, port={}", remote_port);
+                    remote_port != 0
+                }
+            }
+            _ => {
+                console_log!("Shadowsocks: unknown address type: {}", buffer[0]);
+                false
+            }
+        };
+        console_log!("Shadowsocks detection result: {}", result);
+        result
+    }
+
+    fn is_trojan(&self, buffer: &[u8]) -> bool {
+        let result = buffer.len() > 57 && buffer[56] == 13 && buffer[57] == 10;
+        console_log!("Trojan detection: len={}, result={}", buffer.len(), result);
+        result
+    }
+
+    fn is_vmess(&self, buffer: &[u8]) -> bool {
+        let result = buffer.len() >= 1 && buffer[0] == 1;
+        console_log!("VMess detection: first_byte={:02x}, result={}", buffer[0], result);
+        result
+    }
+
+    pub async fn handle_tcp_outbound(&mut self, addr: String, port: u16) -> Result<()> {
+        console_log!("=== DEBUG: handle_tcp_outbound ===");
+        console_log!("Target: {}:{}", addr, port);
+        
+        let mut remote_socket = Socket::builder().connect(&addr, port).map_err(|e| {
+            console_error!("ERROR: Failed to create socket for {}:{}: {}", addr, port, e);
+            Error::RustError(e.to_string())
+        })?;
+
+        console_log!("Socket created, waiting for connection to open");
+
+        remote_socket.opened().await.map_err(|e| {
+            console_error!("ERROR: Failed to open connection to {}:{}: {}", addr, port, e);
+            Error::RustError(e.to_string())
+        })?;
+
+        console_log!("Connection opened, starting bidirectional copy");
+
+        let result = tokio::io::copy_bidirectional(self, &mut remote_socket).await;
+        
+        match result {
+            Ok((a_to_b, b_to_a)) => {
+                console_log!("TCP SUCCESS: {}:{} completed - up: {}, down: {}", addr, port, convert(a_to_b as f64), convert(b_to_a as f64));
+                Ok(())
+            }
+            Err(e) => {
+                console_error!("ERROR: TCP connection {}:{} failed: {}", addr, port, e);
+                Err(Error::RustError(e.to_string()))
+            }
+        }
+    }
+
+    pub async fn handle_udp_outbound(&mut self) -> Result<()> {
+        console_log!("=== DEBUG: handle_udp_outbound ===");
+        let mut buff = vec![0u8; 65535];
+
+        let n = self.read(&mut buff).await?;
+        let data = &buff[..n];
+        
+        console_log!("UDP packet received: {} bytes", data.len());
+        console_log!("UDP first 16 bytes: {:02x?}", &data[..std::cmp::min(16, data.len())]);
+        
+        match crate::dns::doh(data).await {
+            Ok(response) => {
+                console_log!("DNS SUCCESS: Response received: {} bytes", response.len());
+                self.write(&response).await?;
+            }
+            Err(e) => {
+                console_error!("ERROR: DNS resolution failed: {}", e);
+                console_log!("Continuing despite DNS error");
+            }
+        }
+        Ok(())
+    }
+}
+
+impl<'a> AsyncRead for ProxyStream<'a> {
+    fn poll_read(
+        self: Pin<&mut Self>,
+        cx: &mut Context,
+        buf: &mut ReadBuf<'_>,
+    ) -> Poll<tokio::io::Result<()>> {
+        let mut this = self.project();
+
+        loop {
+            let size = std::cmp::min(this.buffer.len(), buf.remaining());
+            if size > 0 {
+                buf.put_slice(&this.buffer.split_to(size));
+                return Poll::Ready(Ok(()));
+            }
+
+            match this.events.as_mut().poll_next(cx) {
+                Poll::Ready(Some(Ok(WebsocketEvent::Message(msg)))) => {
+                    if let Some(data) = msg.bytes() {
+                        console_log!("AsyncRead: Received {} bytes", data.len());
+                        if data.len() > MAX_WEBSOCKET_SIZE {
+                            return Poll::Ready(Err(std::io::Error::new(
+                                std::io::ErrorKind::Other,
+                                "websocket message too large"
+                            )));
+                        }
+                        
+                        if this.buffer.len() + data.len() > MAX_BUFFER_SIZE {
+                            console_log!("AsyncRead: Buffer full, applying backpressure");
+                            return Poll::Pending;
+                        }
+                        
+                        this.buffer.put_slice(&data);
+                    }
+                }
+                Poll::Ready(Some(Ok(WebsocketEvent::Close(_)))) => {
+                    console_log!("AsyncRead: WebSocket closed");
+                    return Poll::Ready(Err(std::io::Error::new(
+                        std::io::ErrorKind::UnexpectedEof,
+                        "websocket closed"
+                    )));
+                }
+                Poll::Ready(Some(Err(e))) => {
+                    console_error!("AsyncRead: WebSocket error: {}", e);
+                    return Poll::Ready(Err(std::io::Error::new(
+                        std::io::ErrorKind::Other,
+                        e.to_string()
+                    )));
+                }
+                Poll::Ready(None) => {
+                    console_log!("AsyncRead: Stream ended");
+                    return Poll::Ready(Err(std::io::Error::new(
+                        std::io::ErrorKind::UnexpectedEof,
+                        "stream ended"
+                    )));
+                }
+                Poll::Pending => return Poll::Pending,
+            }
+        }
+    }
+}
+
+impl<'a> AsyncWrite for ProxyStream<'a> {
+    fn poll_write(
+        self: Pin<&mut Self>,
+        _cx: &mut Context,
+        buf: &[u8],
+    ) -> Poll<tokio::io::Result<usize>> {
+        console_log!("AsyncWrite: Writing {} bytes", buf.len());
+        
+        if buf.len() > MAX_WEBSOCKET_SIZE {
+            console_error!("AsyncWrite: Message too large: {} bytes", buf.len());
+            return Poll::Ready(Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                "message too large"
+            )));
+        }
+        
+        match self.ws.send_with_bytes(buf) {
+            Ok(_) => {
+                console_log!("AsyncWrite: Successfully sent {} bytes", buf.len());
+                Poll::Ready(Ok(buf.len()))
+            }
+            Err(e) => {
+                console_error!("AsyncWrite: Failed to send: {}", e);
+                Poll::Ready(Err(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    e.to_string()
+                )))
+            }
+        }
+    }
+
+    fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context) -> Poll<tokio::io::Result<()>> {
+        Poll::Ready(Ok(()))
+    }
+
+    fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context) -> Poll<tokio::io::Result<()>> {
+        console_log!("AsyncWrite: Shutting down WebSocket");
+        match self.ws.close(Some(1000), Some("shutdown".to_string())) {
+            Ok(_) => Poll::Ready(Ok(())),
+            Err(e) => {
+                console_error!("AsyncWrite: Failed to close WebSocket: {}", e);
+                Poll::Ready(Err(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    e.to_string()
+                )))
+            }
+        }
+    }
+}
