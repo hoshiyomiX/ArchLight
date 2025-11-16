@@ -1,5 +1,5 @@
 use sha2::{Digest, Sha256};
-use uuid::Uuid;  // Added missing import
+// Removed unused import: use uuid::Uuid;
 
 trait Hasher {
     fn clone(&self) -> Box<dyn Hasher>;
@@ -119,6 +119,7 @@ pub fn kdf(key: &[u8], path: &[&[u8]]) -> [u8; 32] {
 mod tests {
     use super::*;
     use md5::Md5;
+    use uuid::Uuid;  // Keep this import as it's used in the test
 
     #[test]
     fn test_kdf() {
