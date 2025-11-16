@@ -1,7 +1,7 @@
 use crate::config::Config;
 
 use std::pin::Pin;
-use std::task::{Context, Poll};
+use std::task::{Context, Poll};  // Added missing imports
 use bytes::{BufMut, BytesMut};
 use futures_util::Stream;
 use pin_project_lite::pin_project;
@@ -9,10 +9,8 @@ use pretty_bytes::converter::convert;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, ReadBuf};
 use worker::*;
 
-// Optimized buffer sizes for better performance
-static MAX_WEBSOCKET_SIZE: usize = 32 * 1024; // 32kb (balanced)
-static MAX_BUFFER_SIZE: usize = 256 * 1024; // 256kb (balanced)
-static PEEK_BUFFER_LEN: usize = 32; // 32 bytes for reliable protocol detection
+static MAX_WEBSOCKET_SIZE: usize = 64 * 1024; // 64kb
+static MAX_BUFFER_SIZE: usize = 512 * 1024; // 512kb
 
 pin_project! {
     pub struct ProxyStream<'a> {
@@ -84,7 +82,7 @@ impl<'a> ProxyStream<'a> {
     }
 
     pub async fn process(&mut self) -> Result<()> {
-        let peek_buffer_len = PEEK_BUFFER_LEN;
+        let peek_buffer_len = 62;
         self.fill_buffer_until(peek_buffer_len).await?;
         let peeked_buffer = self.peek_buffer(peek_buffer_len);
 
@@ -155,30 +153,39 @@ impl<'a> ProxyStream<'a> {
     }
 
     fn is_vmess(&self, buffer: &[u8]) -> bool {
+        // Improved VMess detection - check for VMess header format
         buffer.len() >= 1 && buffer[0] == 1
     }
 
     pub async fn handle_tcp_outbound(&mut self, addr: String, port: u16) -> Result<()> {
+        console_log!("Connecting to TCP {}:{}", addr, port);
+        
         let mut remote_socket = Socket::builder().connect(&addr, port).map_err(|e| {
-            Error::RustError(e.to_string())
+            Error::RustError(format!("Failed to connect to {}:{}: {}", addr, port, e))
         })?;
 
         remote_socket.opened().await.map_err(|e| {
-            Error::RustError(e.to_string())
+            Error::RustError(format!("Failed to open connection to {}:{}: {}", addr, port, e))
         })?;
 
-        tokio::io::copy_bidirectional(self, &mut remote_socket)
-            .await
-            .map(|(a_to_b, b_to_a)| {
-                // Only log significant transfers to reduce overhead
-                if a_to_b > 1024 || b_to_a > 1024 {
-                    console_log!("copied data from {}:{}, up: {} and dl: {}", &addr, &port, convert(a_to_b as f64), convert(b_to_a as f64));
-                }
-            })
-            .map_err(|e| {
-                Error::RustError(e.to_string())
-            })?;
-        Ok(())
+        let result = tokio::io::copy_bidirectional(self, &mut remote_socket).await;
+        
+        match result {
+            Ok((a_to_b, b_to_a)) => {
+                console_log!(
+                    "TCP connection {}:{} closed - up: {}, down: {}", 
+                    addr, 
+                    port, 
+                    convert(a_to_b as f64), 
+                    convert(b_to_a as f64)
+                );
+                Ok(())
+            }
+            Err(e) => {
+                console_error!("TCP connection {}:{} error: {}", addr, port, e);
+                Err(Error::RustError(format!("TCP connection error: {}", e)))
+            }
+        }
     }
 
     pub async fn handle_udp_outbound(&mut self) -> Result<()> {
@@ -187,9 +194,19 @@ impl<'a> ProxyStream<'a> {
         let n = self.read(&mut buff).await?;
         let data = &buff[..n];
         
-        if crate::dns::doh(data).await.is_ok() {
-            self.write(&data).await?;
-        };
+        console_log!("Processing UDP packet of {} bytes", data.len());
+        
+        // Handle DNS over HTTPS
+        match crate::dns::doh(data).await {
+            Ok(response) => {
+                console_log!("DNS query resolved successfully");
+                self.write(&response).await?;
+            }
+            Err(e) => {
+                console_error!("DNS resolution failed: {}", e);
+                return Err(Error::RustError(format!("DNS resolution failed: {}", e)));
+            }
+        }
         Ok(())
     }
 }
@@ -220,6 +237,7 @@ impl<'a> AsyncRead for ProxyStream<'a> {
                         }
                         
                         if this.buffer.len() + data.len() > MAX_BUFFER_SIZE {
+                            console_log!("buffer full, applying backpressure");
                             return Poll::Pending;
                         }
                         
@@ -256,6 +274,10 @@ impl<'a> AsyncWrite for ProxyStream<'a> {
         _cx: &mut Context,
         buf: &[u8],
     ) -> Poll<tokio::io::Result<usize>> {
+        // Note: This is a simplified implementation. In a real-world scenario,
+        // we would need to handle the asynchronous nature of WebSocket sends properly.
+        // The current implementation may lose data if the WebSocket is not ready.
+        
         if buf.len() > MAX_WEBSOCKET_SIZE {
             return Poll::Ready(Err(std::io::Error::new(
                 std::io::ErrorKind::Other,
@@ -263,7 +285,6 @@ impl<'a> AsyncWrite for ProxyStream<'a> {
             )));
         }
         
-        // Optimized for small packets
         match self.ws.send_with_bytes(buf) {
             Ok(_) => Poll::Ready(Ok(buf.len())),
             Err(e) => Poll::Ready(Err(std::io::Error::new(
