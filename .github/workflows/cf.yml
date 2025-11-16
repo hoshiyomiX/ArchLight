@@ -43,8 +43,11 @@ jobs:
       - name: Install wasm-bindgen-cli
         run: cargo install -f wasm-bindgen-cli --version 0.2.100 --locked
 
-      - name: Install worker-build
-        run: cargo install -q worker-build --version 0.0.15 --locked  # Updated to latest available version
+      - name: Install worker-build (latest version)
+        run: cargo install -q worker-build  # Removed version pinning to get latest available
+
+      - name: Verify worker-build installation
+        run: worker-build --version
 
       - name: Poison the cache
         run: |
