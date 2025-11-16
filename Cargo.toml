@@ -1,5 +1,5 @@
 [package]
-name = "siren"
+name = "archlight"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,25 +7,33 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-tokio = { version = "1.28", features = ["io-util", "rt"] }
-serde_json = "1.0"
-base64 = "0.22"
-getrandom = { version = "0.2", features = ["js"] }
-worker = "0.5.0"
-futures-util = "0.3.28"
-pin-project-lite = "0.2"
-uuid = "1.8.0"
-bytes = "1.4.0"
-aes-gcm = "0.10"
-aes = "0.8"
-sha2 = "0.10"
-md-5 = "0.10"
-anyhow = "1.0.86"
-reqwest = "0.12.5"
-regex = "1.11.1"
-once_cell = "1.21.3"
-pretty-bytes = "0.2.2"
+# Core dependencies
+tokio = { version = "1.44", features = ["io-util"] }  # Updated version, removed rt feature
+serde_json = "1.0.140"  # Updated version
+base64 = "0.22"  # Already latest
+getrandom = { version = "0.2", features = ["js"] }  # Already latest
+worker = "0.5.0"  # Keep pinned version
 
+# Async utilities
+futures-util = "0.3.31"  # Updated version
+pin-project-lite = "0.2.16"  # Updated version
+
+# Cryptography
+aes-gcm = "0.10"  # Already latest
+aes = "0.8"  # Already latest
+sha2 = "0.10"  # Already latest
+md-5 = "0.10"  # Already latest
+
+# HTTP and networking
+reqwest = { version = "0.12.15", default-features = false, features = ["json"] }  # Updated version, minimal features
+
+# Utilities
+uuid = { version = "1.16", features = ["v4"] }  # Updated version with v4 feature
+bytes = "1.10"  # Updated version
+anyhow = "1.0.97"  # Updated version
+regex = "1.11"  # Updated version
+once_cell = "1.21.3"  # Already latest
+pretty-bytes = "0.2"  # Already latest
 
 [profile.release]
 opt-level = "s"
