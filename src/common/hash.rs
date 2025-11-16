@@ -1,4 +1,5 @@
 use sha2::{Digest, Sha256};
+use uuid::Uuid;  // Added missing import
 
 trait Hasher {
     fn clone(&self) -> Box<dyn Hasher>;
@@ -39,6 +40,15 @@ impl RecursiveHash {
     fn new(key: &[u8], hash: Box<dyn Hasher>) -> Self {
         let mut ipad = [0u8; 64];
         let mut opad = [0u8; 64];
+
+        // Ensure key is not longer than block size
+        let key = if key.len() > 64 {
+            let mut hasher = Sha256::new();
+            hasher.update(key);
+            hasher.finalize().to_vec()
+        } else {
+            key.to_vec()
+        };
 
         ipad[..key.len()].copy_from_slice(&key);
         opad[..key.len()].copy_from_slice(&key);
@@ -84,10 +94,10 @@ impl Hasher for RecursiveHash {
     }
 
     fn finalize(&mut self) -> [u8; 32] {
-        let result: [u8; 32] = self.inner.finalize().into();
+        let result: [u8; 32] = self.inner.finalize();
         self.outer.update(&self.opad);
         self.outer.update(&result);
-        self.outer.finalize().into()
+        self.outer.finalize()
     }
 }
 
@@ -97,7 +107,7 @@ pub fn kdf(key: &[u8], path: &[&[u8]]) -> [u8; 32] {
         Box::new(Sha256Hash::new()),
     ));
 
-    for p in path.into_iter() {
+    for p in path.iter() {
         current = Box::new(RecursiveHash::new(p, current));
     }
 
@@ -112,7 +122,10 @@ mod tests {
 
     #[test]
     fn test_kdf() {
-        let uuid = uuid::uuid!("96850032-1b92-46e9-a4f2-b99631456894").as_bytes();
+        // Use Uuid::parse_str instead of uuid! macro for better compatibility
+        let uuid = Uuid::parse_str("96850032-1b92-46e9-a4f2-b99631456894")
+            .unwrap()
+            .as_bytes();
         let key = crate::md5!(&uuid, b"c48619fe-8f02-49e0-b9e9-edf763e17e21");
 
         let res = kdf(&key, &[b"AES Auth ID Encryption"]);
