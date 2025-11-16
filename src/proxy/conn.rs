@@ -259,3 +259,51 @@ impl<'a> AsyncRead for ProxyStream<'a> {
                     return Poll::Ready(Err(std::io::Error::new(
                         std::io::ErrorKind::UnexpectedEof,
                         "stream ended"
+                    )));
+                }
+                Poll::Pending => return Poll::Pending,
+            }
+        }
+    }
+}
+
+impl<'a> AsyncWrite for ProxyStream<'a> {
+    fn poll_write(
+        self: Pin<&mut Self>,
+        _: &mut Context<'_>,
+        buf: &[u8],
+    ) -> Poll<tokio::io::Result<usize>> {
+        // Note: This is a simplified implementation. In a real-world scenario,
+        // we would need to handle the asynchronous nature of WebSocket sends properly.
+        // The current implementation may lose data if the WebSocket is not ready.
+        
+        if buf.len() > MAX_WEBSOCKET_SIZE {
+            return Poll::Ready(Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                "message too large"
+            )));
+        }
+        
+        match self.ws.send_with_bytes(buf) {
+            Ok(_) => Poll::Ready(Ok(buf.len())),
+            Err(e) => Poll::Ready(Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                e.to_string()
+            ))),
+        }
+    }
+
+    fn poll_flush(self: Pin<&mut Self>, _: &mut Context<'_>) -> Poll<tokio::io::Result<()>> {
+        Poll::Ready(Ok(()))
+    }
+
+    fn poll_shutdown(self: Pin<&mut Self>, _: &mut Context<'_>) -> Poll<tokio::io::Result<()>> {
+        match self.ws.close(Some(1000), Some("shutdown".to_string())) {
+            Ok(_) => Poll::Ready(Ok(())),
+            Err(e) => Poll::Ready(Err(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                e.to_string()
+            ))),
+        }
+    }
+}
