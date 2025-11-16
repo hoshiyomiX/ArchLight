@@ -13,6 +13,7 @@ serde_json = "1.0.140"  # Updated version
 base64 = "0.22"  # Already latest
 getrandom = { version = "0.2", features = ["js"] }  # Already latest
 worker = "0.5.0"  # Keep pinned version
+futures-util = "0.3.31"
 
 # Async utilities
 futures-util = "0.3.31"  # Updated version
