@@ -4,7 +4,7 @@ use std::net::{Ipv4Addr, Ipv6Addr};
 use worker::*;
 use md5::Md5;  // Corrected import name
 use sha2::Sha256;
-use futures_util::io::{AsyncRead, AsyncReadExt};
+use tokio::io::{AsyncRead, AsyncReadExt};  // Using tokio which is already in dependencies
 
 pub const KDFSALT_CONST_VMESS_HEADER_PAYLOAD_LENGTH_AEAD_KEY: &[u8] =
     b"VMess Header AEAD Key_Length";
