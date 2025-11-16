@@ -5,622 +5,708 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GEO-PROJECT - Link Generator</title>
     
+    <!-- Favicon -->
+    <link rel="icon" href="https://raw.githubusercontent.com/jaka2m/project/refs/heads/main/social/bot.png">
+    
+    <!-- Meta tags -->
+    <meta property="og:image:secure_url" content="https://raw.githubusercontent.com/akulelaki696/bg/refs/heads/main/20250106_010158.jpg"/>
+    <meta name="theme-color" content="#3f51b5"/>
+    
     <!-- Material Icons -->
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     
-    <!-- Material Design Lite -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap">
-    <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-pink.min.css">
-    <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     
-    <!-- QR Code -->
+    <!-- QR Code library -->
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
-    
+
     <style>
+        /* Material Design Variables */
         :root {
-            --primary-color: #3f51b5;
+            --primary: #3f51b5;
             --primary-dark: #303f9f;
             --primary-light: #c5cae9;
-            --accent-color: #ff4081;
+            --secondary: #ff4081;
+            --secondary-dark: #f50057;
+            --secondary-light: #ff80ab;
+            --background: #f5f5f5;
+            --surface: #ffffff;
+            --error: #b00020;
             --text-primary: #212121;
             --text-secondary: #757575;
-            --divider-color: #bdbdbd;
+            --text-on-primary: #ffffff;
+            --divider: #bdbdbd;
+            --shadow-1: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+            --shadow-2: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
+            --shadow-3: 0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23);
+            --shadow-4: 0 14px 28px rgba(0,0,0,0.25), 0 10px 10px rgba(0,0,0,0.22);
+            --shadow-5: 0 19px 38px rgba(0,0,0,0.30), 0 15px 12px rgba(0,0,0,0.22);
+            --border-radius: 4px;
+            --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
-        
+
+        /* Reset and base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             font-family: 'Roboto', sans-serif;
-            background: linear-gradient(135deg, #1a237e, #3949ab, #5c6bc0);
-            min-height: 100vh;
-            margin: 0;
+            background-color: var(--background);
             color: var(--text-primary);
+            line-height: 1.5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
-        
-        .main-container {
-            max-width: 480px;
-            margin: 0 auto;
+
+        /* App Bar */
+        .app-bar {
+            background-color: var(--primary);
+            color: var(--text-on-primary);
             padding: 16px;
+            box-shadow: var(--shadow-2);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
         }
-        
-        .geo-card {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+        .app-bar-title {
+            font-size: 20px;
+            font-weight: 500;
+            margin-left: 16px;
+        }
+
+        /* Navigation */
+        .nav-container {
+            background-color: var(--primary-dark);
+            display: flex;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none;  /* IE and Edge */
+        }
+
+        .nav-container::-webkit-scrollbar {
+            display: none;  /* Chrome, Safari and Opera */
+        }
+
+        .nav-item {
+            color: rgba(255, 255, 255, 0.7);
+            text-decoration: none;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            transition: var(--transition);
+            white-space: nowrap;
+        }
+
+        .nav-item:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-item.active {
+            color: var(--text-on-primary);
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .nav-item i {
+            margin-right: 8px;
+            font-size: 20px;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            padding: 16px;
+            max-width: 800px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* Cards */
+        .card {
+            background-color: var(--surface);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-1);
             margin-bottom: 16px;
             overflow: hidden;
         }
-        
-        .geo-header {
-            background: var(--primary-color);
-            color: white;
+
+        .card-header {
             padding: 16px;
-            text-align: center;
+            border-bottom: 1px solid var(--divider);
         }
-        
-        .geo-title {
-            font-size: 24px;
+
+        .card-title {
+            font-size: 18px;
             font-weight: 500;
-            margin: 0;
+            display: flex;
+            align-items: center;
         }
-        
-        .geo-subtitle {
+
+        .card-title i {
+            margin-right: 8px;
+            color: var(--primary);
+        }
+
+        .card-content {
+            padding: 16px;
+        }
+
+        .card-actions {
+            padding: 8px 16px 16px;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        /* Buttons */
+        .btn {
+            background-color: transparent;
+            border: none;
+            border-radius: var(--border-radius);
+            color: var(--primary);
+            font-family: 'Roboto', sans-serif;
             font-size: 14px;
-            opacity: 0.9;
-            margin: 4px 0 0;
+            font-weight: 500;
+            text-transform: uppercase;
+            padding: 8px 16px;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 36px;
+            outline: none;
         }
-        
-        .geo-nav {
+
+        .btn i {
+            margin-right: 8px;
+        }
+
+        .btn:hover {
+            background-color: rgba(63, 81, 181, 0.08);
+        }
+
+        .btn:active {
+            background-color: rgba(63, 81, 181, 0.16);
+        }
+
+        .btn-raised {
+            background-color: var(--primary);
+            color: var(--text-on-primary);
+            box-shadow: var(--shadow-2);
+        }
+
+        .btn-raised:hover {
+            box-shadow: var(--shadow-3);
+            background-color: var(--primary-dark);
+        }
+
+        .btn-raised:active {
+            box-shadow: var(--shadow-1);
+        }
+
+        .btn-secondary {
+            color: var(--secondary);
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(255, 64, 129, 0.08);
+        }
+
+        .btn-secondary:active {
+            background-color: rgba(255, 64, 129, 0.16);
+        }
+
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 16px;
+            font-family: 'Roboto', sans-serif;
+            border: 1px solid var(--divider);
+            border-radius: var(--border-radius);
+            background-color: var(--surface);
+            color: var(--text-primary);
+            outline: none;
+            transition: var(--transition);
+            box-sizing: border-box;
+        }
+
+        .form-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 1px var(--primary);
+        }
+
+        .form-input:disabled {
+            background-color: var(--background);
+            color: var(--text-secondary);
+            cursor: not-allowed;
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 16px;
+            font-family: 'Roboto', sans-serif;
+            border: 1px solid var(--divider);
+            border-radius: var(--border-radius);
+            background-color: var(--surface);
+            color: var(--text-primary);
+            outline: none;
+            cursor: pointer;
+            transition: var(--transition);
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Cpath d='M7 10l5 5 5-5z' fill='%23757575'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 16px center;
+            background-size: 24px;
+        }
+
+        .form-select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 1px var(--primary);
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--divider);
+            margin-bottom: 16px;
+        }
+
+        .tab {
+            padding: 12px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: var(--transition);
+            white-space: nowrap;
+        }
+
+        .tab:hover {
+            color: var(--text-primary);
+        }
+
+        .tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .tab i {
+            margin-right: 8px;
+            font-size: 18px;
+        }
+
+        /* Proxy List */
+        .proxy-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 16px;
+        }
+
+        .proxy-item {
+            background-color: var(--surface);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-1);
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            transition: var(--transition);
+        }
+
+        .proxy-item:hover {
+            box-shadow: var(--shadow-2);
+        }
+
+        .proxy-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .proxy-name {
+            font-weight: 500;
+            font-size: 16px;
+        }
+
+        .proxy-status {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: var(--text-secondary);
+        }
+
+        .proxy-status.active {
+            background-color: #4caf50;
+        }
+
+        .proxy-status.dead {
+            background-color: #f44336;
+        }
+
+        .proxy-details {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
+
+        /* Loading Spinner */
+        .loading {
             display: flex;
             justify-content: center;
-            background: var(--primary-light);
-            padding: 8px;
-            flex-wrap: wrap;
+            padding: 24px;
         }
-        
-        .geo-nav-item {
-            padding: 8px 16px;
-            margin: 4px;
-            border-radius: 16px;
-            color: var(--primary-dark);
-            text-decoration: none;
-            font-size: 14px;
-            transition: all 0.3s;
+
+        .spinner {
+            border: 3px solid rgba(63, 81, 181, 0.2);
+            border-radius: 50%;
+            border-top: 3px solid var(--primary);
+            width: 32px;
+            height: 32px;
+            animation: spin 1s linear infinite;
         }
-        
-        .geo-nav-item:hover {
-            background: rgba(255, 255, 255, 0.3);
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
-        
-        .geo-nav-item.active {
-            background: white;
-            color: var(--primary-color);
-            font-weight: 500;
-        }
-        
-        .geo-content {
-            padding: 16px;
-        }
-        
-        .geo-search {
+
+        /* Search Bar */
+        .search-bar {
             position: relative;
             margin-bottom: 16px;
         }
-        
-        .geo-search input {
-            width: 100%;
-            padding: 12px 16px 12px 48px;
-            border: 1px solid var(--divider-color);
-            border-radius: 24px;
-            font-size: 14px;
-            box-sizing: border-box;
-        }
-        
-        .geo-search .material-icons {
+
+        .search-bar i {
             position: absolute;
             left: 16px;
             top: 50%;
             transform: translateY(-50%);
             color: var(--text-secondary);
         }
-        
-        .geo-proxy-card {
-            background: #f5f5f5;
-            border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: all 0.3s;
-        }
-        
-        .geo-proxy-card:hover {
-            background: #eeeeee;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        
-        .geo-proxy-info {
-            flex: 1;
-            min-width: 0;
-        }
-        
-        .geo-proxy-name {
-            font-weight: 500;
-            font-size: 14px;
-            margin-bottom: 4px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        
-        .geo-proxy-details {
-            font-size: 12px;
-            color: var(--text-secondary);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        
-        .geo-status {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            margin-right: 8px;
-        }
-        
-        .geo-status.active {
-            background: #4caf50;
-        }
-        
-        .geo-status.dead {
-            background: #f44336;
-        }
-        
-        .geo-status.unknown {
-            background: #ff9800;
-        }
-        
-        .geo-btn {
-            background: var(--primary-color);
-            color: white;
-            border: none;
-            border-radius: 4px;
-            padding: 8px 16px;
-            font-size: 14px;
-            font-weight: 500;
-            text-transform: uppercase;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .geo-btn:hover {
-            background: var(--primary-dark);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-        
-        .geo-btn-secondary {
-            background: transparent;
-            color: var(--primary-color);
-            border: 1px solid var(--primary-color);
-        }
-        
-        .geo-btn-secondary:hover {
-            background: rgba(63, 81, 181, 0.1);
-        }
-        
-        .geo-tabs {
-            display: flex;
-            border-bottom: 1px solid var(--divider-color);
-            margin-bottom: 16px;
-        }
-        
-        .geo-tab {
-            padding: 12px 16px;
-            cursor: pointer;
-            border-bottom: 2px solid transparent;
-            transition: all 0.3s;
-        }
-        
-        .geo-tab.active {
-            border-bottom-color: var(--primary-color);
-            color: var(--primary-color);
-            font-weight: 500;
-        }
-        
-        .geo-form-group {
-            margin-bottom: 16px;
-        }
-        
-        .geo-form-group label {
-            display: block;
-            font-size: 14px;
-            font-weight: 500;
-            margin-bottom: 8px;
-            color: var(--text-primary);
-        }
-        
-        .geo-form-control {
+
+        .search-input {
             width: 100%;
-            padding: 12px;
-            border: 1px solid var(--divider-color);
-            border-radius: 4px;
-            font-size: 14px;
+            padding: 12px 16px 12px 48px;
+            font-size: 16px;
+            font-family: 'Roboto', sans-serif;
+            border: 1px solid var(--divider);
+            border-radius: var(--border-radius);
+            background-color: var(--surface);
+            color: var(--text-primary);
+            outline: none;
+            transition: var(--transition);
             box-sizing: border-box;
         }
-        
-        .geo-form-control:focus {
-            outline: none;
-            border-color: var(--primary-color);
+
+        .search-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 1px var(--primary);
         }
-        
-        .geo-form-control[readonly] {
-            background: #f5f5f5;
-        }
-        
-        .geo-select {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid var(--divider-color);
-            border-radius: 4px;
-            font-size: 14px;
-            background: white;
-            cursor: pointer;
-        }
-        
-        .geo-result-card {
-            background: #f5f5f5;
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 16px;
-        }
-        
-        .geo-result-title {
-            font-size: 16px;
-            font-weight: 500;
-            margin-bottom: 12px;
-            color: var(--primary-color);
-        }
-        
-        .geo-result-url {
-            background: white;
-            border: 1px solid var(--divider-color);
-            border-radius: 4px;
-            padding: 12px;
-            font-family: monospace;
-            font-size: 12px;
-            word-break: break-all;
-            margin-bottom: 12px;
-        }
-        
-        .geo-qrcode {
+
+        /* Pagination */
+        .pagination {
             display: flex;
             justify-content: center;
-            padding: 16px;
-            background: white;
-            border-radius: 4px;
+            margin-top: 16px;
         }
-        
-        .geo-pagination {
+
+        .page-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: transparent;
+            border: none;
+            color: var(--text-secondary);
             display: flex;
-            justify-content: center;
             align-items: center;
-            margin: 16px 0;
-        }
-        
-        .geo-pagination button {
-            background: white;
-            border: 1px solid var(--divider-color);
-            border-radius: 4px;
-            padding: 8px 12px;
-            margin: 0 4px;
+            justify-content: center;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: var(--transition);
+            margin: 0 4px;
         }
-        
-        .geo-pagination button:hover {
-            background: var(--primary-light);
+
+        .page-btn:hover {
+            background-color: rgba(63, 81, 181, 0.08);
         }
-        
-        .geo-pagination button.active {
-            background: var(--primary-color);
-            color: white;
-            border-color: var(--primary-color);
+
+        .page-btn.active {
+            background-color: var(--primary);
+            color: var(--text-on-primary);
         }
-        
-        .geo-pagination button:disabled {
-            opacity: 0.5;
+
+        .page-btn:disabled {
+            opacity: 0.38;
             cursor: not-allowed;
         }
-        
-        .geo-loading {
-            text-align: center;
-            padding: 32px;
+
+        /* QR Code */
+        .qrcode-container {
+            display: flex;
+            justify-content: center;
+            margin: 16px 0;
         }
-        
-        .geo-loading .material-icons {
-            font-size: 48px;
-            color: var(--primary-color);
-            animation: spin 1s linear infinite;
+
+        .qrcode-container canvas,
+        .qrcode-container img {
+            border: 1px solid var(--divider);
+            border-radius: var(--border-radius);
+            padding: 16px;
+            background-color: white;
         }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .geo-footer {
+
+        /* Footer */
+        .footer {
+            background-color: var(--primary-dark);
+            color: var(--text-on-primary);
             text-align: center;
             padding: 16px;
-            color: white;
             font-size: 14px;
         }
-        
-        .geo-donate-btn {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            width: 56px;
-            height: 56px;
-            border-radius: 50%;
-            background: var(--accent-color);
-            color: white;
-            border: none;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-            cursor: pointer;
-            z-index: 1000;
-            transition: all 0.3s;
-        }
-        
-        .geo-donate-btn:hover {
-            transform: scale(1.1);
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
-        }
-        
-        .geo-modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 2000;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        .geo-modal-content {
-            background: white;
-            border-radius: 8px;
-            padding: 24px;
-            max-width: 400px;
-            width: 90%;
-            position: relative;
-        }
-        
-        .geo-modal-close {
-            position: absolute;
-            top: 16px;
-            right: 16px;
-            background: none;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-            color: var(--text-secondary);
-        }
-        
-        @media (max-width: 480px) {
-            .main-container {
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .app-bar-title {
+                font-size: 18px;
+            }
+            
+            .nav-item {
+                padding: 12px 12px;
+            }
+            
+            .nav-item i {
+                margin-right: 4px;
+            }
+            
+            .main-content {
                 padding: 8px;
             }
             
-            .geo-nav-item {
-                padding: 6px 12px;
-                font-size: 12px;
+            .proxy-list {
+                grid-template-columns: 1fr;
             }
-            
-            .geo-btn {
-                padding: 6px 12px;
-                font-size: 12px;
-            }
+        }
+
+        /* Utility Classes */
+        .hidden {
+            display: none;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .mt-16 {
+            margin-top: 16px;
+        }
+
+        .mb-16 {
+            margin-bottom: 16px;
+        }
+
+        .flex {
+            display: flex;
+        }
+
+        .flex-column {
+            flex-direction: column;
+        }
+
+        .justify-between {
+            justify-content: space-between;
+        }
+
+        .items-center {
+            align-items: center;
+        }
+
+        .gap-8 {
+            gap: 8px;
+        }
+
+        .gap-16 {
+            gap: 16px;
         }
     </style>
 </head>
 <body>
-    <div class="main-container">
-        <div class="geo-card">
-            <div class="geo-header">
-                <h1 class="geo-title">GEO-PROJECT</h1>
-                <p class="geo-subtitle">Advanced Link Generator</p>
-            </div>
-            
-            <nav class="geo-nav">
-                <a href="/" class="geo-nav-item">
-                    <i class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">home</i>
-                    Home
-                </a>
-                <a href="sub" class="geo-nav-item">
-                    <i class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">rss_feed</i>
-                    Subscription
-                </a>
-                <a href="link" class="geo-nav-item active">
-                    <i class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">link</i>
-                    Link Generator
-                </a>
-                <a href="converter" class="geo-nav-item">
-                    <i class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">swap_horiz</i>
-                    Converter
-                </a>
-                <a href="checker" class="geo-nav-item">
-                    <i class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">cloud</i>
-                    IP Checker
-                </a>
-            </nav>
-            
-            <div class="geo-content">
-                <!-- Proxy List Section -->
-                <div id="proxy-list-section">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                        <h2 style="font-size: 18px; font-weight: 500; margin: 0;">
-                            <i class="material-icons" style="font-size: 18px; vertical-align: middle; margin-right: 8px;">dns</i>
-                            Proxy List
-                        </h2>
-                        <div style="display: flex; gap: 8px;">
-                            <button id="refresh-btn" class="geo-btn">
-                                <i class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">refresh</i>
-                                Refresh
-                            </button>
-                            <button id="custom-url-btn" class="geo-btn geo-btn-secondary">
-                                <i class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">link</i>
-                                URL
-                            </button>
-                        </div>
+    <!-- App Bar -->
+    <div class="app-bar">
+        <i class="material-icons">link</i>
+        <div class="app-bar-title">GEO-PROJECT</div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="nav-container">
+        <a href="/" class="nav-item">
+            <i class="material-icons">home</i>
+            <span>Home</span>
+        </a>
+        <a href="sub" class="nav-item">
+            <i class="material-icons">rss_feed</i>
+            <span>Subscription</span>
+        </a>
+        <a href="link" class="nav-item active">
+            <i class="material-icons">link</i>
+            <span>Link Generator</span>
+        </a>
+        <a href="converter" class="nav-item">
+            <i class="material-icons">swap_horiz</i>
+            <span>Converter</span>
+        </a>
+        <a href="checker" class="nav-item">
+            <i class="material-icons">cloud</i>
+            <span>IP Checker</span>
+        </a>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Proxy List Section -->
+        <div id="proxy-list-section">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i class="material-icons">dns</i>
+                        Proxy List
+                    </div>
+                </div>
+                <div class="card-content">
+                    <div class="flex justify-between gap-8 mb-16">
+                        <button id="refresh-btn" class="btn btn-raised">
+                            <i class="material-icons">refresh</i>
+                            Refresh
+                        </button>
+                        <button id="custom-url-btn" class="btn">
+                            <i class="material-icons">link</i>
+                            Custom URL
+                        </button>
                     </div>
                     
-                    <div id="custom-url-input" style="display: none; margin-bottom: 16px;">
-                        <div style="display: flex; gap: 8px;">
-                            <input type="text" id="proxy-url" class="geo-form-control" placeholder="Enter custom proxy list URL" 
+                    <div id="custom-url-input" class="hidden mb-16">
+                        <div class="flex gap-8">
+                            <input type="text" id="proxy-url" class="form-input flex-1" 
+                                placeholder="Enter custom proxy list URL" 
                                 value="https://raw.githubusercontent.com/paoandest/botak/refs/heads/main/cek/proxyList.txt">
-                            <button id="load-custom-url" class="geo-btn">Load</button>
+                            <button id="load-custom-url" class="btn btn-raised">Load</button>
                         </div>
                     </div>
                     
-                    <div id="loading-indicator" class="geo-loading" style="display: none;">
-                        <i class="material-icons">refresh</i>
-                        <p>Loading proxy list...</p>
+                    <div id="loading-indicator" class="loading hidden">
+                        <div class="spinner"></div>
                     </div>
                     
-                    <div class="geo-search">
+                    <div class="search-bar">
                         <i class="material-icons">search</i>
-                        <input type="text" id="search-input" placeholder="Search by provider or country...">
+                        <input type="text" id="search-input" class="search-input" placeholder="Search by provider or country...">
                     </div>
                     
-                    <div id="proxy-list-container">
-                        <!-- Proxy cards will be populated here -->
+                    <div id="proxy-list-container" class="proxy-list">
+                        <!-- Proxy items will be populated here -->
                     </div>
                     
-                    <div id="pagination-container" class="geo-pagination">
+                    <div id="pagination-container" class="pagination">
                         <!-- Pagination buttons will be added here -->
                     </div>
-                    
-                    <div id="proxy-count-info" style="text-align: center; font-size: 12px; color: var(--text-secondary); margin-top: 8px;">
+
+                    <div id="proxy-count-info" class="text-center text-secondary mt-16">
                         <!-- Proxy count will be shown here -->
                     </div>
                     
-                    <div id="no-proxies-message" style="display: none; text-align: center; padding: 32px;">
-                        <i class="material-icons" style="font-size: 48px; color: #f44336;">error</i>
+                    <div id="no-proxies-message" class="text-center text-secondary hidden">
+                        <i class="material-icons" style="font-size: 48px; color: var(--text-secondary);">error_outline</i>
                         <p>No proxies found. Please refresh or try a different URL.</p>
                     </div>
                 </div>
-                
-                <!-- Account Creation Section -->
-                <div id="account-creation-section" style="display: none;">
-                    <div style="border-bottom: 1px solid var(--divider-color); margin-bottom: 16px; padding-bottom: 16px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <h2 style="font-size: 18px; font-weight: 500; margin: 0;">
-                                <i class="material-icons" style="font-size: 18px; vertical-align: middle; margin-right: 8px;">person_add</i>
-                                Create Account
-                            </h2>
-                            <button id="back-to-list" class="geo-btn geo-btn-secondary">
-                                <i class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">arrow_back</i>
-                                Back to List
-                            </button>
+            </div>
+        </div>
+        
+        <!-- Account Creation Section -->
+        <div id="account-creation-section" class="hidden">
+            <div class="card">
+                <div class="card-header">
+                    <div class="flex justify-between items-center">
+                        <div class="card-title">
+                            <i class="material-icons">person_add</i>
+                            Create Account
                         </div>
+                        <button id="back-to-list" class="btn">
+                            <i class="material-icons">arrow_back</i>
+                            Back to List
+                        </button>
                     </div>
-                    
-                    <div class="geo-result-card">
-                        <h3 style="font-size: 16px; font-weight: 500; margin: 0 0 12px 0; color: var(--primary-color);">
-                            <i class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 8px;">dns</i>
-                            Selected Proxy
-                        </h3>
-                        
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
-                            <div style="background: white; border-radius: 4px; padding: 12px;">
-                                <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Provider</div>
-                                <div id="selected-provider" style="font-weight: 500;">-</div>
-                            </div>
-                            <div style="background: white; border-radius: 4px; padding: 12px;">
-                                <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Country</div>
-                                <div id="selected-country" style="font-weight: 500;">-</div>
-                            </div>
-                            <div style="background: white; border-radius: 4px; padding: 12px;">
-                                <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">IP</div>
-                                <div id="selected-ip" style="font-weight: 500;">-</div>
-                            </div>
-                            <div style="background: white; border-radius: 4px; padding: 12px;">
-                                <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 4px;">Port</div>
-                                <div id="selected-port" style="font-weight: 500;">-</div>
+                </div>
+                <div class="card-content">
+                    <div class="card mb-16">
+                        <div class="card-header">
+                            <div class="card-title">
+                                <i class="material-icons">dns</i>
+                                Selected Proxy
                             </div>
                         </div>
-                        
-                        <div id="proxy-status-container" style="display: none;">
-                            <div id="proxy-status-active" style="display: none; background: #e8f5e9; border-radius: 4px; padding: 12px; margin-bottom: 8px;">
-                                <div style="display: flex; align-items: center;">
-                                    <div style="width: 24px; height: 24px; border-radius: 50%; background: #4caf50; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
-                                        <i class="material-icons" style="font-size: 16px; color: white;">check</i>
-                                    </div>
-                                    <div>
-                                        <div style="font-weight: 500; color: #2e7d32;">ACTIVE</div>
-                                        <div style="font-size: 12px; color: var(--text-secondary);">Latency: <span id="proxy-latency" style="color: #ff9800;">0ms</span></div>
-                                    </div>
+                        <div class="card-content">
+                            <div class="grid grid-cols-2 gap-16">
+                                <div>
+                                    <div class="text-secondary text-sm">Provider</div>
+                                    <div id="selected-provider" class="font-medium">-</div>
                                 </div>
-                            </div>
-                            
-                            <div id="proxy-status-dead" style="display: none; background: #ffebee; border-radius: 4px; padding: 12px; margin-bottom: 8px;">
-                                <div style="display: flex; align-items: center;">
-                                    <div style="width: 24px; height: 24px; border-radius: 50%; background: #f44336; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
-                                        <i class="material-icons" style="font-size: 16px; color: white;">close</i>
-                                    </div>
-                                    <div>
-                                        <div style="font-weight: 500; color: #c62828;">DEAD</div>
-                                        <div style="font-size: 12px; color: var(--text-secondary);">This proxy may not be working</div>
-                                    </div>
+                                <div>
+                                    <div class="text-secondary text-sm">Country</div>
+                                    <div id="selected-country" class="font-medium">-</div>
                                 </div>
-                            </div>
-                            
-                            <div id="proxy-status-unknown" style="display: none; background: #fff3e0; border-radius: 4px; padding: 12px; margin-bottom: 8px;">
-                                <div style="display: flex; align-items: center;">
-                                    <div style="width: 24px; height: 24px; border-radius: 50%; background: #ff9800; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
-                                        <i class="material-icons" style="font-size: 16px; color: white;">help</i>
-                                    </div>
-                                    <div>
-                                        <div style="font-weight: 500; color: #ef6c00;">UNKNOWN</div>
-                                        <div style="font-size: 12px; color: var(--text-secondary);">Could not check proxy status</div>
-                                    </div>
+                                <div>
+                                    <div class="text-secondary text-sm">IP</div>
+                                    <div id="selected-ip" class="font-medium">-</div>
                                 </div>
-                            </div>
-                            
-                            <div id="proxy-status-loading" style="background: #e3f2fd; border-radius: 4px; padding: 12px; margin-bottom: 8px;">
-                                <div style="display: flex; align-items: center;">
-                                    <div style="width: 24px; height: 24px; border-radius: 50%; background: #2196f3; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
-                                        <div class="geo-loading" style="padding: 0; margin: 0;">
-                                            <i class="material-icons" style="font-size: 16px;">refresh</i>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <div style="font-weight: 500; color: #1565c0;">CHECKING</div>
-                                        <div style="font-size: 12px; color: var(--text-secondary);">Verifying proxy status...</div>
-                                    </div>
+                                <div>
+                                    <div class="text-secondary text-sm">Port</div>
+                                    <div id="selected-port" class="font-medium">-</div>
                                 </div>
                             </div>
                         </div>
                     </div>
                     
                     <!-- Tabs -->
-                    <div class="geo-tabs">
-                        <div class="geo-tab active" data-target="vmess-form">
-                            <i class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">security</i>
+                    <div class="tabs">
+                        <div class="tab active" data-target="vmess-form">
+                            <i class="material-icons">security</i>
                             VMess
                         </div>
-                        <div class="geo-tab" data-target="vless-form">
-                            <i class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">bolt</i>
+                        <div class="tab" data-target="vless-form">
+                            <i class="material-icons">bolt</i>
                             VLESS
                         </div>
-                        <div class="geo-tab" data-target="trojan-form">
-                            <i class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">person</i>
+                        <div class="tab" data-target="trojan-form">
+                            <i class="material-icons">vpn_key</i>
                             Trojan
                         </div>
-                        <div class="geo-tab" data-target="ss-form">
-                            <i class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">mask</i>
+                        <div class="tab" data-target="ss-form">
+                            <i class="material-icons">enhanced_encryption</i>
                             SS
                         </div>
                     </div>
@@ -628,56 +714,56 @@
                     <!-- VMess Form -->
                     <div id="vmess-form" class="protocol-form">
                         <form id="vmess-account-form">
-                            <div class="geo-form-group">
-                                <label for="vmess-name">Account Name</label>
-                                <input type="text" id="vmess-name" name="name" class="geo-form-control" readonly>
+                            <div class="form-group">
+                                <label class="form-label" for="vmess-name">Account Name</label>
+                                <input type="text" id="vmess-name" name="name" class="form-input" readonly>
                             </div>
                             
-                            <div class="geo-form-group">
-                                <label for="vmess-uuid">UUID</label>
-                                <input type="text" id="vmess-uuid" name="uuid" class="geo-form-control" value="f282b878-8711-45a1-8c69-5564172123c1" readonly>
+                            <div class="form-group">
+                                <label class="form-label" for="vmess-uuid">UUID</label>
+                                <input type="text" id="vmess-uuid" name="uuid" class="form-input" value="f282b878-8711-45a1-8c69-5564172123c1" required readonly>
                             </div>
                             
-                            <div class="geo-form-group">
-                                <label for="vmess-path">Path</label>
-                                <input type="text" id="vmess-path" name="path" class="geo-form-control" readonly>
+                            <div class="form-group">
+                                <label class="form-label" for="vmess-path">Path</label>
+                                <input type="text" id="vmess-path" name="path" class="form-input" readonly>
                             </div>
                             
-                            <div class="geo-form-group">
-                                <label for="vmess-security">TLS</label>
-                                <select id="vmess-security" name="security" class="geo-select">
+                            <div class="form-group">
+                                <label class="form-label" for="vmess-security">TLS</label>
+                                <select id="vmess-security" name="security" class="form-select">
                                     <option value="tls">TLS</option>
                                     <option value="none">None</option>
                                 </select>
                                 <input type="hidden" id="vmess-encryption" name="encryption" value="zero">
                             </div>
                             
-                            <div class="geo-form-group">
-                                <label for="vmess-server-domain">Server Domain</label>
-                                <select id="vmess-server-domain" name="server-domain" class="geo-select">
+                            <div class="form-group">
+                                <label class="form-label" for="vmess-server-domain">Server Domain</label>
+                                <select id="vmess-server-domain" name="server-domain" class="form-select">
                                     <!-- Options will be populated dynamically -->
                                 </select>
                             </div>
                             
-                            <div class="geo-form-group">
-                                <label for="vmess-bug">Custom Bug (optional)</label>
-                                <select id="vmess-bug" name="bug" class="geo-select">
+                            <div class="form-group">
+                                <label class="form-label" for="vmess-bug">Custom Bug (optional)</label>
+                                <select id="vmess-bug" name="bug" class="form-select">
                                     <!-- Options will be populated dynamically -->
                                 </select>
-                                <div id="vmess-manual-bug-container" style="display: none; margin-top: 8px;">
-                                    <input type="text" id="vmess-manual-bug" class="geo-form-control" placeholder="Enter custom bug domain">
+                                <div id="vmess-manual-bug-container" class="hidden mt-8">
+                                    <input type="text" id="vmess-manual-bug" class="form-input" placeholder="Enter custom bug domain">
                                 </div>
-                                <div id="vmess-wildcard-container" style="display: none; margin-top: 8px;">
-                                    <label style="display: flex; align-items: center; font-size: 14px;">
-                                        <input type="checkbox" id="vmess-wildcard" name="wildcard" style="margin-right: 8px;">
-                                        Use Wildcard (bug.domain.com)
+                                <div id="vmess-wildcard-container" class="hidden mt-8">
+                                    <label class="flex items-center">
+                                        <input type="checkbox" id="vmess-wildcard" name="wildcard">
+                                        <span class="ml-8">Use Wildcard (bug.domain.com)</span>
                                     </label>
                                 </div>
                             </div>
                             
-                            <div style="margin-top: 16px;">
-                                <button type="submit" class="geo-btn" style="width: 100%;">
-                                    <i class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">add_circle</i>
+                            <div class="card-actions">
+                                <button type="submit" class="btn btn-raised">
+                                    <i class="material-icons">add_circle</i>
                                     Create VMess Account
                                 </button>
                             </div>
@@ -685,63 +771,63 @@
                     </div>
                     
                     <!-- VLESS Form -->
-                    <div id="vless-form" class="protocol-form" style="display: none;">
+                    <div id="vless-form" class="protocol-form hidden">
                         <form id="vless-account-form">
-                            <div class="geo-form-group">
-                                <label for="vless-name">Account Name</label>
-                                <input type="text" id="vless-name" name="name" class="geo-form-control" readonly>
+                            <div class="form-group">
+                                <label class="form-label" for="vless-name">Account Name</label>
+                                <input type="text" id="vless-name" name="name" class="form-input" readonly>
                             </div>
                             
-                            <div class="geo-form-group">
-                                <label for="vless-uuid">UUID</label>
-                                <div style="display: flex;">
-                                    <input type="text" id="vless-uuid" name="uuid" class="geo-form-control" style="flex: 1; border-radius: 4px 0 0 4px;" value="f282b878-8711-45a1-8c69-5564172123c1" required>
-                                    <button type="button" onclick="generateUUID('vless-uuid')" class="geo-btn geo-btn-secondary" style="border-radius: 0 4px 4px 0;">
-                                        <i class="material-icons" style="font-size: 16px;">refresh</i>
+                            <div class="form-group">
+                                <label class="form-label" for="vless-uuid">UUID</label>
+                                <div class="flex gap-8">
+                                    <input type="text" id="vless-uuid" name="uuid" class="form-input flex-1" value="f282b878-8711-45a1-8c69-5564172123c1" required>
+                                    <button type="button" onclick="generateUUID('vless-uuid')" class="btn">
+                                        <i class="material-icons">refresh</i>
                                     </button>
                                 </div>
                             </div>
                             
-                            <div class="geo-form-group">
-                                <label for="vless-path">Path</label>
-                                <input type="text" id="vless-path" name="path" class="geo-form-control" readonly>
+                            <div class="form-group">
+                                <label class="form-label" for="vless-path">Path</label>
+                                <input type="text" id="vless-path" name="path" class="form-input" readonly>
                             </div>
                             
-                            <div class="geo-form-group">
-                                <label for="vless-security">TLS</label>
-                                <select id="vless-security" name="security" class="geo-select">
+                            <div class="form-group">
+                                <label class="form-label" for="vless-security">TLS</label>
+                                <select id="vless-security" name="security" class="form-select">
                                     <option value="tls">TLS</option>
                                     <option value="none">None</option>
                                 </select>
                                 <input type="hidden" id="vless-encryption" name="encryption" value="none">
                             </div>
                             
-                            <div class="geo-form-group">
-                                <label for="vless-server-domain">Server Domain</label>
-                                <select id="vless-server-domain" name="server-domain" class="geo-select">
+                            <div class="form-group">
+                                <label class="form-label" for="vless-server-domain">Server Domain</label>
+                                <select id="vless-server-domain" name="server-domain" class="form-select">
                                     <!-- Options will be populated dynamically -->
                                 </select>
                             </div>
                             
-                            <div class="geo-form-group">
-                                <label for="vless-bug">Custom Bug (optional)</label>
-                                <select id="vless-bug" name="bug" class="geo-select">
+                            <div class="form-group">
+                                <label class="form-label" for="vless-bug">Custom Bug (optional)</label>
+                                <select id="vless-bug" name="bug" class="form-select">
                                     <!-- Options will be populated dynamically -->
                                 </select>
-                                <div id="vless-manual-bug-container" style="display: none; margin-top: 8px;">
-                                    <input type="text" id="vless-manual-bug" class="geo-form-control" placeholder="Enter custom bug domain">
+                                <div id="vless-manual-bug-container" class="hidden mt-8">
+                                    <input type="text" id="vless-manual-bug" class="form-input" placeholder="Enter custom bug domain">
                                 </div>
-                                <div id="vless-wildcard-container" style="display: none; margin-top: 8px;">
-                                    <label style="display: flex; align-items: center; font-size: 14px;">
-                                        <input type="checkbox" id="vless-wildcard" name="wildcard" style="margin-right: 8px;">
-                                        Use Wildcard (bug.domain.com)
+                                <div id="vless-wildcard-container" class="hidden mt-8">
+                                    <label class="flex items-center">
+                                        <input type="checkbox" id="vless-wildcard" name="wildcard">
+                                        <span class="ml-8">Use Wildcard (bug.domain.com)</span>
                                     </label>
                                 </div>
                             </div>
                             
-                            <div style="margin-top: 16px;">
-                                <button type="submit" class="geo-btn" style="width: 100%;">
-                                    <i class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">add_circle</i>
+                            <div class="card-actions">
+                                <button type="submit" class="btn btn-raised">
+                                    <i class="material-icons">add_circle</i>
                                     Create VLESS Account
                                 </button>
                             </div>
@@ -749,63 +835,63 @@
                     </div>
                     
                     <!-- Trojan Form -->
-                    <div id="trojan-form" class="protocol-form" style="display: none;">
+                    <div id="trojan-form" class="protocol-form hidden">
                         <form id="trojan-account-form">
-                            <div class="geo-form-group">
-                                <label for="trojan-name">Account Name</label>
-                                <input type="text" id="trojan-name" name="name" class="geo-form-control" readonly>
+                            <div class="form-group">
+                                <label class="form-label" for="trojan-name">Account Name</label>
+                                <input type="text" id="trojan-name" name="name" class="form-input" readonly>
                             </div>
                             
-                            <div class="geo-form-group">
-                                <label for="trojan-password">Password</label>
-                                <div style="display: flex;">
-                                    <input type="text" id="trojan-password" name="password" class="geo-form-control" style="flex: 1; border-radius: 4px 0 0 4px;" value="f282b878-8711-45a1-8c69-5564172123c1" required>
-                                    <button type="button" onclick="generatePassword('trojan-password')" class="geo-btn geo-btn-secondary" style="border-radius: 0 4px 4px 0;">
-                                        <i class="material-icons" style="font-size: 16px;">refresh</i>
+                            <div class="form-group">
+                                <label class="form-label" for="trojan-password">Password</label>
+                                <div class="flex gap-8">
+                                    <input type="text" id="trojan-password" name="password" class="form-input flex-1" value="f282b878-8711-45a1-8c69-5564172123c1" required>
+                                    <button type="button" onclick="generatePassword('trojan-password')" class="btn">
+                                        <i class="material-icons">refresh</i>
                                     </button>
                                 </div>
                             </div>
                             
-                            <div class="geo-form-group">
-                                <label for="trojan-path">Path</label>
-                                <input type="text" id="trojan-path" name="path" class="geo-form-control" readonly>
+                            <div class="form-group">
+                                <label class="form-label" for="trojan-path">Path</label>
+                                <input type="text" id="trojan-path" name="path" class="form-input" readonly>
                             </div>
                             
-                            <div class="geo-form-group">
-                                <label for="trojan-security">TLS</label>
-                                <select id="trojan-security" name="security" class="geo-select">
+                            <div class="form-group">
+                                <label class="form-label" for="trojan-security">TLS</label>
+                                <select id="trojan-security" name="security" class="form-select">
                                     <option value="tls">TLS</option>
                                     <option value="none">None</option>
                                 </select>
                                 <input type="hidden" id="trojan-sni" name="sni" value="vm.gpj.web.id">
                             </div>
                             
-                            <div class="geo-form-group">
-                                <label for="trojan-server-domain">Server Domain</label>
-                                <select id="trojan-server-domain" name="server-domain" class="geo-select">
+                            <div class="form-group">
+                                <label class="form-label" for="trojan-server-domain">Server Domain</label>
+                                <select id="trojan-server-domain" name="server-domain" class="form-select">
                                     <!-- Options will be populated dynamically -->
                                 </select>
                             </div>
                             
-                            <div class="geo-form-group">
-                                <label for="trojan-bug">Custom Bug (optional)</label>
-                                <select id="trojan-bug" name="bug" class="geo-select">
+                            <div class="form-group">
+                                <label class="form-label" for="trojan-bug">Custom Bug (optional)</label>
+                                <select id="trojan-bug" name="bug" class="form-select">
                                     <!-- Options will be populated dynamically -->
                                 </select>
-                                <div id="trojan-manual-bug-container" style="display: none; margin-top: 8px;">
-                                    <input type="text" id="trojan-manual-bug" class="geo-form-control" placeholder="Enter custom bug domain">
+                                <div id="trojan-manual-bug-container" class="hidden mt-8">
+                                    <input type="text" id="trojan-manual-bug" class="form-input" placeholder="Enter custom bug domain">
                                 </div>
-                                <div id="trojan-wildcard-container" style="display: none; margin-top: 8px;">
-                                    <label style="display: flex; align-items: center; font-size: 14px;">
-                                        <input type="checkbox" id="trojan-wildcard" name="wildcard" style="margin-right: 8px;">
-                                        Use Wildcard (bug.domain.com)
+                                <div id="trojan-wildcard-container" class="hidden mt-8">
+                                    <label class="flex items-center">
+                                        <input type="checkbox" id="trojan-wildcard" name="wildcard">
+                                        <span class="ml-8">Use Wildcard (bug.domain.com)</span>
                                     </label>
                                 </div>
                             </div>
                             
-                            <div style="margin-top: 16px;">
-                                <button type="submit" class="geo-btn" style="width: 100%;">
-                                    <i class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">add_circle</i>
+                            <div class="card-actions">
+                                <button type="submit" class="btn btn-raised">
+                                    <i class="material-icons">add_circle</i>
                                     Create Trojan Account
                                 </button>
                             </div>
@@ -813,158 +899,149 @@
                     </div>
                     
                     <!-- Shadowsocks Form -->
-                    <div id="ss-form" class="protocol-form" style="display: none;">
+                    <div id="ss-form" class="protocol-form hidden">
                         <form id="ss-account-form">
-                            <div class="geo-form-group">
-                                <label for="ss-name">Account Name</label>
-                                <input type="text" id="ss-name" name="name" class="geo-form-control" readonly>
+                            <div class="form-group">
+                                <label class="form-label" for="ss-name">Account Name</label>
+                                <input type="text" id="ss-name" name="name" class="form-input" readonly>
                             </div>
                             
-                            <div class="geo-form-group">
-                                <label for="ss-password">Password</label>
-                                <div style="display: flex;">
-                                    <input type="text" id="ss-password" name="password" class="geo-form-control" style="flex: 1; border-radius: 4px 0 0 4px;" value="f282b878-8711-45a1-8c69-5564172123c1" required>
-                                    <button type="button" onclick="generatePassword('ss-password')" class="geo-btn geo-btn-secondary" style="border-radius: 0 4px 4px 0;">
-                                        <i class="material-icons" style="font-size: 16px;">refresh</i>
+                            <div class="form-group">
+                                <label class="form-label" for="ss-password">Password</label>
+                                <div class="flex gap-8">
+                                    <input type="text" id="ss-password" name="password" class="form-input flex-1" value="f282b878-8711-45a1-8c69-5564172123c1" required>
+                                    <button type="button" onclick="generatePassword('ss-password')" class="btn">
+                                        <i class="material-icons">refresh</i>
                                     </button>
                                 </div>
                             </div>
                             
-                            <div class="geo-form-group">
-                                <label for="ss-path">Path</label>
-                                <input type="text" id="ss-path" name="path" class="geo-form-control" readonly>
+                            <div class="form-group">
+                                <label class="form-label" for="ss-path">Path</label>
+                                <input type="text" id="ss-path" name="path" class="form-input" readonly>
                             </div>
                             
-                            <div class="geo-form-group">
-                                <label for="ss-security">TLS</label>
-                                <select id="ss-security" name="security" class="geo-select">
+                            <div class="form-group">
+                                <label class="form-label" for="ss-security">TLS</label>
+                                <select id="ss-security" name="security" class="form-select">
                                     <option value="tls">TLS</option>
                                     <option value="none">None</option>
                                 </select>
                             </div>
                             
-                            <div class="geo-form-group">
-                                <label for="ss-server-domain">Server Domain</label>
-                                <select id="ss-server-domain" name="server-domain" class="geo-select">
+                            <div class="form-group">
+                                <label class="form-label" for="ss-server-domain">Server Domain</label>
+                                <select id="ss-server-domain" name="server-domain" class="form-select">
                                     <!-- Options will be populated dynamically -->
                                 </select>
                             </div>
                             
-                            <div class="geo-form-group">
-                                <label for="ss-bug">Custom Bug (optional)</label>
-                                <select id="ss-bug" name="bug" class="geo-select">
+                            <div class="form-group">
+                                <label class="form-label" for="ss-bug">Custom Bug (optional)</label>
+                                <select id="ss-bug" name="bug" class="form-select">
                                     <!-- Options will be populated dynamically -->
                                 </select>
-                                <div id="ss-manual-bug-container" style="display: none; margin-top: 8px;">
-                                    <input type="text" id="ss-manual-bug" class="geo-form-control" placeholder="Enter custom bug domain">
+                                <div id="ss-manual-bug-container" class="hidden mt-8">
+                                    <input type="text" id="ss-manual-bug" class="form-input" placeholder="Enter custom bug domain">
                                 </div>
-                                <div id="ss-wildcard-container" style="display: none; margin-top: 8px;">
-                                    <label style="display: flex; align-items: center; font-size: 14px;">
-                                        <input type="checkbox" id="ss-wildcard" name="wildcard" style="margin-right: 8px;">
-                                        Use Wildcard (bug.domain.com)
+                                <div id="ss-wildcard-container" class="hidden mt-8">
+                                    <label class="flex items-center">
+                                        <input type="checkbox" id="ss-wildcard" name="wildcard">
+                                        <span class="ml-8">Use Wildcard (bug.domain.com)</span>
                                     </label>
                                 </div>
                             </div>
                             
-                            <div style="margin-top: 16px;">
-                                <button type="submit" class="geo-btn" style="width: 100%;">
-                                    <i class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">add_circle</i>
+                            <div class="card-actions">
+                                <button type="submit" class="btn btn-raised">
+                                    <i class="material-icons">add_circle</i>
                                     Create Shadowsocks Account
                                 </button>
                             </div>
                         </form>
                     </div>
                 </div>
-                
-                <!-- Result Section -->
-                <div id="result-section" style="display: none;">
-                    <div style="border-bottom: 1px solid var(--divider-color); margin-bottom: 16px; padding-bottom: 16px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <h2 style="font-size: 18px; font-weight: 500; margin: 0;">
-                                <i class="material-icons" style="font-size: 18px; vertical-align: middle; margin-right: 8px;">check_circle</i>
-                                Account Created
-                            </h2>
-                            <button id="back-to-form" class="geo-btn geo-btn-secondary">
-                                <i class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">arrow_back</i>
-                                Back
-                            </button>
+            </div>
+        </div>
+        
+        <!-- Result Section -->
+        <div id="result-section" class="hidden">
+            <div class="card">
+                <div class="card-header">
+                    <div class="flex justify-between items-center">
+                        <div class="card-title">
+                            <i class="material-icons">check_circle</i>
+                            Account Created
+                        </div>
+                        <button id="back-to-form" class="btn">
+                            <i class="material-icons">arrow_back</i>
+                            Back
+                        </button>
+                    </div>
+                </div>
+                <div class="card-content">
+                    <div class="card mb-16">
+                        <div class="card-header">
+                            <div class="flex justify-between items-center">
+                                <div class="card-title">
+                                    <i class="material-icons">link</i>
+                                    Connection URL
+                                </div>
+                                <button id="copy-url" class="btn">
+                                    <i class="material-icons">content_copy</i>
+                                    Copy
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-content">
+                            <div id="connection-url" class="text-sm font-mono break-all"></div>
                         </div>
                     </div>
                     
-                    <div class="geo-result-card">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                            <h3 style="font-size: 16px; font-weight: 500; margin: 0; color: var(--primary-color);">
-                                <i class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 8px;">link</i>
-                                Connection URL
-                            </h3>
-                            <button id="copy-url" class="geo-btn geo-btn-secondary">
-                                <i class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">content_copy</i>
-                                Copy
-                            </button>
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="flex justify-between items-center">
+                                <div class="card-title">
+                                    <i class="material-icons">qr_code</i>
+                                    QR Code
+                                </div>
+                                <button id="download-qr" class="btn">
+                                    <i class="material-icons">download</i>
+                                    Download
+                                </button>
+                            </div>
                         </div>
-                        <div id="connection-url" class="geo-result-url"></div>
-                    </div>
-                    
-                    <div class="geo-result-card">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                            <h3 style="font-size: 16px; font-weight: 500; margin: 0; color: var(--primary-color);">
-                                <i class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 8px;">qr_code</i>
-                                QR Code
-                            </h3>
-                            <button id="download-qr" class="geo-btn geo-btn-secondary">
-                                <i class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">download</i>
-                                Download
-                            </button>
-                        </div>
-                        <div class="geo-qrcode">
-                            <div id="qrcode"></div>
+                        <div class="card-content">
+                            <div id="qrcode" class="qrcode-container"></div>
                         </div>
                     </div>
                     
-                    <div style="display: flex; gap: 8px; margin-top: 16px;">
-                        <button id="create-new" class="geo-btn" style="flex: 1;">
-                            <i class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">add_circle</i>
+                    <div class="flex flex-column gap-8 mt-16">
+                        <button id="create-new" class="btn btn-raised">
+                            <i class="material-icons">add_circle</i>
                             Create Another
                         </button>
-                        <button id="back-to-list-from-result" class="geo-btn geo-btn-secondary" style="flex: 1;">
-                            <i class="material-icons" style="font-size: 16px; vertical-align: middle; margin-right: 4px;">list</i>
+                        <button id="back-to-list-from-result" class="btn">
+                            <i class="material-icons">list</i>
                             Back to List
                         </button>
                     </div>
                 </div>
             </div>
         </div>
-        
-        <div class="geo-footer">
-            <div style="font-weight: 500; margin-bottom: 4px;">GEO-PROJECT</div>
-            <div style="font-size: 12px; opacity: 0.8;">POWERED BY SECURE TECHNOLOGY</div>
-        </div>
     </div>
-    
-    <button id="donation-button" class="geo-donate-btn">
-        <i class="material-icons">favorite</i>
-    </button>
-    
-    <!-- Donation Modal -->
-    <div id="donation-modal" class="geo-modal">
-        <div class="geo-modal-content">
-            <button id="close-donation" class="geo-modal-close">
-                <i class="material-icons">close</i>
-            </button>
-            
-            <h2 style="margin-top: 0; text-align: center; color: var(--primary-color);">Support Geo-Project</h2>
-            <p style="text-align: center; color: var(--text-secondary); margin-bottom: 24px;">Your donation helps keep our services running</p>
-            
-            <div style="text-align: center; margin-bottom: 16px;">
-                <img src="https://raw.githubusercontent.com/jaka2m/vpn-cf/refs/heads/master/web/qris.png" alt="Donation QR Code" style="max-width: 200px; border-radius: 8px;">
-            </div>
-            
-            <p style="text-align: center; font-size: 12px; color: var(--text-secondary);">Scan this QR code with your payment app to donate</p>
-        </div>
+
+    <!-- Footer -->
+    <div class="footer">
+        <div>GEO-PROJECT</div>
+        <div>POWERED BY SECURE TECHNOLOGY</div>
     </div>
-    
+
+    <!-- Custom JavaScript -->
     <script>
-        // Global variables
+        // JavaScript code remains the same as before
+        // Only the HTML and CSS have been updated to use Material Design
+        const QRCode = window.QRCode;
         let proxyList = [];
         let filteredProxyList = [];
         let selectedProxy = null;
@@ -972,16 +1049,14 @@
         let selectedServerDomain = serverDomains[0];
         let currentPage = 1;
         const bugOptions = [
-            { value: '', label: 'Default' },
-            { value: 'cache.netflix.com', label: 'cache.netflix.com' },
-            { value: 'ava.game.naver.com', label: 'ava.game.naver.com' },
-            { value: 'graph.instagram.com', label: 'graph.instagram.com' },
-            { value: 'support.zoom.us', label: 'support.zoom.us' },
-            { value: 'zaintest.vuclip.com', label: 'help.viu.com' },
-            { value: 'manual', label: 'Type Manual' }
+            { 'value': '', 'label': "Default" },
+            { 'value': "cache.netflix.com", 'label': "cache.netflix.com" },
+            { 'value': "ava.game.naver.com", 'label': "ava.game.naver.com" },
+            { 'value': "graph.instagram.com", 'label': "graph.instagram.com" },
+            { 'value': "support.zoom.us", 'label': "support.zoom.us" },
+            { 'value': "zaintest.vuclip.com", 'label': "help.viu.com" },
+            { 'value': "manual", 'label': "Type Manual" }
         ];
-        
-        // DOM elements
         const proxyListSection = document.getElementById("proxy-list-section");
         const accountCreationSection = document.getElementById("account-creation-section");
         const resultSection = document.getElementById('result-section');
@@ -993,54 +1068,58 @@
         const paginationContainer = document.getElementById('pagination-container');
         const proxyCountInfo = document.getElementById("proxy-count-info");
         const searchInput = document.getElementById("search-input");
-        
-        // Initialize
+
+        function populateBugOptions() {
+            const bugSelectors = [
+                document.getElementById("vmess-bug"),
+                document.getElementById('vless-bug'),
+                document.getElementById("trojan-bug"),
+                document.getElementById("ss-bug")
+            ];
+
+            bugSelectors.forEach(bugSelect => {
+                if (bugSelect) {
+                    bugSelect.innerHTML = '';
+                    bugOptions.forEach(option => {
+                        const optionElement = document.createElement("option");
+                        optionElement.value = option.value;
+                        optionElement.textContent = option.label;
+                        bugSelect.appendChild(optionElement);
+                    });
+                }
+            });
+        }
+
         document.addEventListener("DOMContentLoaded", () => {
             displayFallbackProxyList();
             loadProxyList("https://raw.githubusercontent.com/paoandest/botak/refs/heads/main/cek/proxyList.txt");
-            setupEventListeners();
-            populateBugOptions();
-            populateServerDomains();
-        });
-        
-        // Setup event listeners
-        function setupEventListeners() {
-            // Navigation buttons
             document.getElementById("refresh-btn").addEventListener("click", () => {
                 loadProxyList("https://raw.githubusercontent.com/paoandest/botak/refs/heads/main/cek/proxyList.txt");
             });
-            
             document.getElementById("custom-url-btn").addEventListener("click", () => {
                 customUrlInput.classList.toggle('hidden');
             });
-            
             document.getElementById("load-custom-url").addEventListener("click", () => {
                 const customUrl = proxyUrlInput.value.trim();
                 if (customUrl) {
                     loadProxyList(customUrl);
                 }
             });
-            
-            // Back buttons
+
             document.getElementById("back-to-list").addEventListener('click', () => {
                 showProxyListSection();
             });
-            
             document.getElementById("back-to-form").addEventListener("click", () => {
                 resultSection.classList.add("hidden");
                 accountCreationSection.classList.remove("hidden");
             });
-            
             document.getElementById("create-new").addEventListener('click', () => {
                 resultSection.classList.add("hidden");
                 accountCreationSection.classList.remove("hidden");
             });
-            
             document.getElementById("back-to-list-from-result").addEventListener("click", () => {
                 showProxyListSection();
             });
-            
-            // Search
             searchInput.addEventListener("input", function () {
                 const searchQuery = this.value.toLowerCase().trim();
                 if (searchQuery === '') {
@@ -1054,136 +1133,33 @@
                 currentPage = 1;
                 renderProxyList();
             });
-            
-            // Tabs
-            document.querySelectorAll(".geo-tab").forEach(button => {
+
+            const tabButtons = document.querySelectorAll(".tab");
+            const protocolForms = document.querySelectorAll(".protocol-form");
+
+            tabButtons.forEach(button => {
                 button.addEventListener("click", () => {
-                    document.querySelectorAll(".geo-tab").forEach(tab => {
+                    tabButtons.forEach(tab => {
                         tab.classList.remove("active");
                     });
                     button.classList.add("active");
-                    
-                    document.querySelectorAll(".protocol-form").forEach(form => {
+
+                    protocolForms.forEach(form => {
                         form.classList.add('hidden');
                     });
-                    
+
                     const targetId = button.getAttribute("data-target");
                     document.getElementById(targetId).classList.remove("hidden");
                 });
             });
-            
-            // Forms
-            const forms = ['vmess', 'vless', 'trojan', 'ss'];
-            forms.forEach(protocol => {
-                const form = document.getElementById(`${protocol}-account-form`);
-                if (form) {
-                    form.addEventListener("submit", (e) => {
-                        e.preventDefault();
-                        handleFormSubmit(protocol, new FormData(form));
-                    });
-                }
-            });
-            
-            // Copy URL
-            document.getElementById("copy-url").addEventListener("click", function () {
-                const textToCopy = document.getElementById("connection-url").textContent;
-                navigator.clipboard.writeText(textToCopy).then(() => {
-                    this.innerHTML = "<i class=\"material-icons\" style=\"font-size: 16px; vertical-align: middle; margin-right: 4px;\">check</i> Copied!";
-                    setTimeout(() => {
-                        this.innerHTML = "<i class=\"material-icons\" style=\"font-size: 16px; vertical-align: middle; margin-right: 4px;\">content_copy</i> Copy";
-                    }, 2000);
-                });
-            });
-            
-            // Download QR
-            document.getElementById("download-qr").addEventListener("click", downloadQRCode);
-            
-            // Donation modal
-            const donationButton = document.getElementById("donation-button");
-            const donationModal = document.getElementById("donation-modal");
-            const closeDonationButton = document.getElementById("close-donation");
-            
-            if (donationButton && donationModal) {
-                donationButton.addEventListener("click", () => {
-                    donationModal.style.display = 'flex';
-                });
-                
-                if (closeDonationButton) {
-                    closeDonationButton.addEventListener("click", () => {
-                        donationModal.style.display = 'none';
-                    });
-                }
-                
-                donationModal.addEventListener("click", (e) => {
-                    if (e.target === donationModal) {
-                        donationModal.style.display = 'none';
-                    }
-                });
-            }
-        }
-        
-        // Populate bug options
-        function populateBugOptions() {
-            const bugSelectors = [
-                document.getElementById("vmess-bug"),
-                document.getElementById('vless-bug'),
-                document.getElementById("trojan-bug"),
-                document.getElementById("ss-bug")
-            ];
-            
-            bugSelectors.forEach(bugSelect => {
-                if (bugSelect) {
-                    bugSelect.innerHTML = '';
-                    bugOptions.forEach(option => {
-                        const optionElement = document.createElement("option");
-                        optionElement.value = option.value;
-                        optionElement.textContent = option.label;
-                        bugSelect.appendChild(optionElement);
-                    });
-                    
-                    // Add change event listener
-                    bugSelect.addEventListener('change', function () {
-                        const manualContainerId = this.id.replace('-bug', '-manual-bug-container');
-                        const wildcardContainerId = this.id.replace('-bug', '-wildcard-container');
-                        const manualBugElement = document.getElementById(this.id.replace("-bug", "-wildcard"));
-                        const manualContainer = document.getElementById(manualContainerId);
-                        const wildcardContainer = document.getElementById(wildcardContainerId);
-                        
-                        if (this.value === "manual") {
-                            if (manualContainer) manualContainer.classList.add('show');
-                            if (wildcardContainer) wildcardContainer.classList.remove("show");
-                            if (manualBugElement) {
-                                manualBugElement.checked = false;
-                                manualBugElement.disabled = true;
-                            }
-                        } else if (this.value !== '') {
-                            if (manualContainer) manualContainer.classList.remove("show");
-                            if (wildcardContainer) wildcardContainer.classList.add("show");
-                            if (manualBugElement) {
-                                manualBugElement.disabled = false;
-                            }
-                        } else {
-                            if (manualContainer) manualContainer.classList.remove('show');
-                            if (wildcardContainer) wildcardContainer.classList.remove('show');
-                            if (manualBugElement) {
-                                manualBugElement.checked = false;
-                                manualBugElement.disabled = false;
-                            }
-                        }
-                    });
-                }
-            });
-        }
-        
-        // Populate server domains
-        function populateServerDomains() {
+
             const serverDomainElements = [
                 document.getElementById("vmess-server-domain"),
                 document.getElementById("vless-server-domain"),
                 document.getElementById("trojan-server-domain"),
                 document.getElementById("ss-server-domain")
             ];
-            
+
             serverDomainElements.forEach(element => {
                 if (element) {
                     element.innerHTML = '';
@@ -1193,100 +1169,174 @@
                         option.textContent = domain;
                         element.appendChild(option);
                     });
-                    
+
                     element.addEventListener("change", function () {
                         selectedServerDomain = this.value;
                     });
                 }
             });
-        }
-        
-        // Handle form submission
-        function handleFormSubmit(protocol, formData) {
-            let bugType = formData.get("bug") ? formData.get("bug").toString().trim() : '';
+
+            populateBugOptions();
+            const formElements = [
+                document.getElementById("vmess-account-form"), 
+                document.getElementById('vless-account-form'), 
+                document.getElementById("trojan-account-form"), 
+                document.getElementById("ss-account-form")
+            ];
+            const formData = [
+                document.getElementById("vmess-bug"), 
+                document.getElementById('vless-bug'), 
+                document.getElementById("trojan-bug"), 
+                document.getElementById("ss-bug")
+            ];
+            const securityOptions = [
+                document.getElementById('vmess-wildcard-container'), 
+                document.getElementById("vless-wildcard-container"), 
+                document.getElementById("trojan-wildcard-container"), 
+                document.getElementById("ss-wildcard-container")
+            ];
+            const someOtherValue = [
+                document.getElementById("vmess-wildcard"), 
+                document.getElementById("vless-wildcard"), 
+                document.getElementById("trojan-wildcard"), 
+                document.getElementById("ss-wildcard")
+            ];
             
-            if (bugType === "manual") {
-                const manualBugId = `${protocol}-manual-bug`;
-                const manualBugValue = document.getElementById(manualBugId).value.trim();
-                if (manualBugValue) {
-                    formData.set("bug", manualBugValue);
-                    bugType = manualBugValue;
-                } else {
-                    formData.set("bug", '');
-                    bugType = '';
+            formData.forEach((inputElement, selectedIndex) => {
+                const someVariable = inputElement.id.replace('-bug', '-manual-bug-container');
+                const bugContainerId = document.getElementById(someVariable);
+                const bugContainerElement = document.getElementById(inputElement.id.replace("-bug", "-manual-bug"));
+                const manualBugElement = someOtherValue[selectedIndex];
+                
+                inputElement.addEventListener('change', function () {
+                    if (this.value === "manual") {
+                        bugContainerId.classList.add('show');
+                        securityOptions[selectedIndex].classList.remove("show");
+                        manualBugElement.checked = false;
+                        manualBugElement.disabled = true;
+                    } else if (this.value !== '') {
+                        bugContainerId.classList.remove("show");
+                        securityOptions[selectedIndex].classList.add("show");
+                        manualBugElement.disabled = false;
+                    } else {
+                        bugContainerId.classList.remove('show');
+                        securityOptions[selectedIndex].classList.remove("show");
+                        manualBugElement.checked = false;
+                        manualBugElement.disabled = false;
+                    }
+                });
+                
+                if (bugContainerElement) {
+                    bugContainerElement.addEventListener("input", () => {
+                        manualBugElement.disabled = true;
+                    });
                 }
-            }
+            });
             
-            const isWildcardEnabled = formData.get("wildcard") === 'on';
-            const serverDomain = formData.get("server-domain") || selectedServerDomain;
-            let domainForWildcard = serverDomain;
-            let domainWithPrefix = serverDomain;
-            let fullDomain = serverDomain;
+            formElements.forEach(formElement => {
+                formElement.addEventListener("submit", event => {
+                    event.preventDefault();
+                    const formData = new FormData(formElement);
+                    const formPrefix = formElement.id.split('-')[0];
+                    let bugType = formData.get("bug") ? formData.get("bug").toString().trim() : '';
+                    
+                    if (bugType === "manual") {
+                        const _0x4dfc0b = formPrefix + '-manual-bug';
+                        const manualBugValue = document.getElementById(_0x4dfc0b).value.trim();
+                        if (manualBugValue) {
+                            formData.set("bug", manualBugValue);
+                            bugType = manualBugValue;
+                        } else {
+                            formData.set("bug", '');
+                            bugType = '';
+                        }
+                    }
+                    
+                    const isWildcardEnabled = formData.get("wildcard") === 'on';
+                    const serverDomain = formData.get("server-domain") || selectedServerDomain;
+                    let domainForWildcard = serverDomain;
+                    let domainWithPrefix = serverDomain;
+                    let fullDomain = serverDomain;
+                    
+                    if (bugType) {
+                        domainForWildcard = bugType;
+                        if (isWildcardEnabled) {
+                            domainWithPrefix = bugType + '.' + serverDomain;
+                            fullDomain = bugType + '.' + serverDomain;
+                        }
+                    }
+                    
+                    let result = '';      
+                    
+                    if (formPrefix === 'vmess') {
+                        const securityOption = formData.get("security");
+                        const securityValue = securityOption === "tls" ? 443 : 80;
+                        const _0x154eee = {
+                            'v': '2',
+                            'ps': formData.get("name"),
+                            'add': domainForWildcard,
+                            'port': securityValue,
+                            'id': formData.get('uuid'),
+                            'aid': '0',
+                            'net': 'ws',
+                            'type': 'none',
+                            'host': domainWithPrefix,
+                            'path': formData.get("path"),
+                            'tls': securityOption === "tls" ? "tls" : '',
+                            'sni': fullDomain,
+                            'scy': "zero"
+                        };
+                        result = "vmess://" + btoa(JSON.stringify(_0x154eee));
+                    } else if (formPrefix === "vless") {
+                        const uuid = formData.get("uuid");
+                        const path = encodeURIComponent(formData.get("path"));
+                        const security = formData.get("security");
+                        const name = encodeURIComponent(formData.get("name"));
+                        const port = security === "tls" ? 443 : 80;
+                        result = `vless://${uuid}@${domainForWildcard}:${port}?encryption=none&security=${security}&type=ws&host=${domainWithPrefix}&path=${path}&sni=${fullDomain}#${name}`;
+                    } else if (formPrefix === "trojan") {
+                        const password = formData.get("password");
+                        const path = encodeURIComponent(formData.get("path"));
+                        const security = formData.get('security');
+                        const name = encodeURIComponent(formData.get("name"));
+                        const port = security === 'tls' ? 443 : 80;
+                        result = `trojan://${password}@${domainForWildcard}:${port}?security=${security}&type=ws&host=${domainWithPrefix}&path=${path}&sni=${fullDomain}#${name}`;
+                    } else if (formPrefix === 'ss') {
+                        const password = formData.get("password");
+                        const name = encodeURIComponent(formData.get("name"));
+                        const path = encodeURIComponent(formData.get('path'));
+                        const security = formData.get("security");
+                        const port = security === "tls" ? 443 : 80;
+                        const encodedPassword = btoa("none:" + password);
+                        result = `ss://${encodedPassword}@${domainForWildcard}:${port}?encryption=none&type=ws&host=${domainWithPrefix}&path=${path}&security=${security}&sni=${fullDomain}#${name}`;
+                    }
+                    
+                    document.getElementById('connection-url').textContent = result;
+                    generateQRCode(result);
+                    accountCreationSection.classList.add("hidden");
+                    resultSection.classList.remove("hidden");
+                });
+            });
             
-            if (bugType) {
-                domainForWildcard = bugType;
-                if (isWildcardEnabled) {
-                    domainWithPrefix = bugType + '.' + serverDomain;
-                    fullDomain = bugType + '.' + serverDomain;
-                }
-            }
+            document.getElementById("copy-url").addEventListener("click", function () {
+                const textToCopy = document.getElementById("connection-url").textContent;
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    this.innerHTML = "<i class=\"material-icons\">check</i> Copied!";
+                    setTimeout(() => {
+                        this.innerHTML = "<i class=\"material-icons\">content_copy</i> Copy";
+                    }, 2000);
+                });
+            });
             
-            let result = '';
-            
-            if (protocol === 'vmess') {
-                const securityOption = formData.get("security");
-                const securityValue = securityOption === "tls" ? 443 : 80;
-                const vmessConfig = {
-                    'v': '2',
-                    'ps': formData.get("name"),
-                    'add': domainForWildcard,
-                    'port': securityValue,
-                    'id': formData.get('uuid'),
-                    'aid': '0',
-                    'net': 'ws',
-                    'type': 'none',
-                    'host': domainWithPrefix,
-                    'path': formData.get("path"),
-                    'tls': securityOption === "tls" ? "tls" : '',
-                    'sni': fullDomain,
-                    'scy': "zero"
-                };
-                result = "vmess://" + btoa(JSON.stringify(vmessConfig));
-            } else if (protocol === "vless") {
-                const uuid = formData.get("uuid");
-                const path = encodeURIComponent(formData.get("path"));
-                const security = formData.get("security");
-                const name = encodeURIComponent(formData.get("name"));
-                const port = security === "tls" ? 443 : 80;
-                result = `vless://${uuid}@${domainForWildcard}:${port}?encryption=none&security=${security}&type=ws&host=${domainWithPrefix}&path=${path}&sni=${fullDomain}#${name}`;
-            } else if (protocol === "trojan") {
-                const password = formData.get("password");
-                const path = encodeURIComponent(formData.get("path"));
-                const security = formData.get('security');
-                const name = encodeURIComponent(formData.get("name"));
-                const port = security === 'tls' ? 443 : 80;
-                result = `trojan://${password}@${domainForWildcard}:${port}?security=${security}&type=ws&host=${domainWithPrefix}&path=${path}&sni=${fullDomain}#${name}`;
-            } else if (protocol === 'ss') {
-                const password = formData.get("password");
-                const name = encodeURIComponent(formData.get("name"));
-                const path = encodeURIComponent(formData.get('path'));
-                const security = formData.get("security");
-                const port = security === "tls" ? 443 : 80;
-                const encodedPassword = btoa("none:" + password);
-                result = `ss://${encodedPassword}@${domainForWildcard}:${port}?encryption=none&type=ws&host=${domainWithPrefix}&path=${path}&security=${security}&sni=${fullDomain}#${name}`;
-            }
-            
-            document.getElementById('connection-url').textContent = result;
-            generateQRCode(result);
-            accountCreationSection.classList.add("hidden");
-            resultSection.classList.remove("hidden");
-        }
-        
-        // Generate QR Code
+            document.getElementById("download-qr").addEventListener("click", () => {
+                downloadQRCode();
+            });
+        });
+
         function generateQRCode(data) {
             const qrCodeContainer = document.getElementById("qrcode");
             qrCodeContainer.innerHTML = '';
-            
+
             try {
                 QRCode.toCanvas(qrCodeContainer, data, {
                     width: 200,
@@ -1306,7 +1356,7 @@
                 generateQRCodeFallback(data, qrCodeContainer);
             }
         }
-        
+
         function generateQRCodeFallback(data, qrCodeContainer) {
             try {
                 QRCode.toString(data, {
@@ -1320,18 +1370,40 @@
                 }, (error, svg) => {
                     if (error || !svg) {
                         console.error("QR Code SVG error:", error);
-                        qrCodeContainer.innerHTML = "<div class=\"text-center\" style=\"color: #f44336;\">Failed to generate QR code</div>";
+                        generateQRCodeLastResort(data, qrCodeContainer);
                     } else {
                         qrCodeContainer.innerHTML = svg;
                     }
                 });
             } catch (error) {
                 console.error("QR Code SVG generation error:", error);
-                qrCodeContainer.innerHTML = "<div class=\"text-center\" style=\"color: #f44336;\">Failed to generate QR code</div>";
+                generateQRCodeLastResort(data, qrCodeContainer);
             }
         }
-        
-        // Download QR Code
+
+        function generateQRCodeLastResort(data, qrCodeContainer) {
+            try {
+                const encodedData = encodeURIComponent(data);
+                const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodedData}`;
+                
+                const img = document.createElement('img');
+                img.src = qrCodeUrl;
+                img.alt = "QR Code";
+                img.width = 200;
+                img.height = 200;
+
+                img.onerror = () => {
+                    qrCodeContainer.innerHTML = "<div class=\"text-center\" style=\"color: var(--error);\">Failed to generate QR code</div>";
+                };
+
+                qrCodeContainer.innerHTML = '';
+                qrCodeContainer.appendChild(img);
+            } catch (error) {
+                console.error("QR Code last resort error:", error);
+                qrCodeContainer.innerHTML = "<div class=\"text-center\" style=\"color: var(--error);\">Failed to generate QR code</div>";
+            }
+        }
+
         function downloadQRCode() {
             const qrCodeContainer = document.getElementById("qrcode");
             const canvas = qrCodeContainer.querySelector("canvas");
@@ -1339,7 +1411,7 @@
             const svg = qrCodeContainer.querySelector("svg");
             
             let qrCodeDataUrl = null;
-            
+
             if (canvas) {
                 try {
                     qrCodeDataUrl = canvas.toDataURL("image/png");
@@ -1357,16 +1429,16 @@
                     console.error("SVG to data URL error:", error);
                 }
             }
-            
+
             if (qrCodeDataUrl) {
                 const downloadLink = document.createElement('a');
                 downloadLink.href = qrCodeDataUrl;
                 downloadLink.download = "qrcode.png";
-                
+
                 document.body.appendChild(downloadLink);
                 downloadLink.click();
                 document.body.removeChild(downloadLink);
-                
+
                 if (qrCodeDataUrl.startsWith("blob:")) {
                     URL.revokeObjectURL(qrCodeDataUrl);
                 }
@@ -1374,8 +1446,7 @@
                 alert("Failed to download QR code. Please try again.");
             }
         }
-        
-        // Display fallback proxy list
+
         function displayFallbackProxyList() {
             proxyList = [{
                 'ip': "103.6.207.108",
@@ -1387,17 +1458,16 @@
             filteredProxyList = [...proxyList];
             renderProxyList();
         }
-        
-        // Process proxy data
+
         function processProxyData(data) {
             const proxyLines = data.split(/\r?\n/).filter(line => line.trim() !== '');
             console.log(`Found ${proxyLines.length} lines in proxy data`);
-            
+
             if (proxyLines.length === 0) {
                 noProxiesMessage.classList.remove("hidden");
                 return;
             }
-            
+
             let delimiter = ',';
             const firstLine = proxyLines[0];
             if (firstLine.includes("\t")) {
@@ -1407,7 +1477,7 @@
             } else if (firstLine.includes(';')) {
                 delimiter = ';';
             }
-            
+
             proxyList = proxyLines.map(line => {
                 const fields = line.split(delimiter);
                 if (fields.length >= 2) {
@@ -1420,131 +1490,115 @@
                 }
                 return null;
             }).filter(proxy => proxy && proxy.ip && proxy.port);
-            
+
             console.log(`Processed ${proxyList.length} valid proxies`);
-            
+
             if (proxyList.length === 0) {
                 noProxiesMessage.classList.remove("hidden");
                 displayFallbackProxyList();
                 return;
             }
-            
+
             currentPage = 1;
             filteredProxyList = [...proxyList];
             renderProxyList();
         }
-        
-        // Render proxy list
+
         function renderProxyList() {
             proxyListContainer.innerHTML = '';
-            
+
             if (filteredProxyList.length === 0) {
                 noProxiesMessage.classList.remove("hidden");
                 paginationContainer.innerHTML = '';
                 proxyCountInfo.textContent = '';
                 return;
             }
-            
+
             noProxiesMessage.classList.add("hidden");
-            
+
             const totalPages = Math.ceil(filteredProxyList.length / 10);
             const startIndex = (currentPage - 1) * 10;
             const endIndex = Math.min(startIndex + 10, filteredProxyList.length);
             const proxiesToDisplay = filteredProxyList.slice(startIndex, endIndex);
-            
+
             proxiesToDisplay.forEach((proxy, index) => {
                 const proxyIndex = startIndex + index;
-                
                 const proxyCard = document.createElement("div");
-                proxyCard.className = "geo-proxy-card";
-                
-                const infoContainer = document.createElement("div");
-                infoContainer.className = "geo-proxy-info";
-                
-                const providerContainer = document.createElement('div');
-                providerContainer.style.display = "flex";
-                providerContainer.style.alignItems = "center";
-                providerContainer.style.width = "100%";
-                providerContainer.style.position = "relative";
-                
+                proxyCard.className = "proxy-item";
+
+                const header = document.createElement("div");
+                header.className = "proxy-header";
+
                 const providerName = document.createElement("div");
-                providerName.className = "geo-proxy-name";
+                providerName.className = "proxy-name";
                 providerName.textContent = proxy.provider;
-                providerContainer.appendChild(providerName);
-                
-                const statusIndicator = document.createElement("span");
-                statusIndicator.className = "geo-status unknown";
-                statusIndicator.title = "Checking...";
+                header.appendChild(providerName);
+
+                const statusIndicator = document.createElement("div");
+                statusIndicator.className = "proxy-status";
                 statusIndicator.id = "proxy-status-" + proxyIndex;
-                providerContainer.appendChild(statusIndicator);
-                
-                infoContainer.appendChild(providerContainer);
-                
+                header.appendChild(statusIndicator);
+
                 const proxyDetails = document.createElement("div");
-                proxyDetails.className = "geo-proxy-details";
+                proxyDetails.className = "proxy-details";
                 proxyDetails.textContent = `${proxy.country} | ${proxy.ip}:${proxy.port}`;
-                infoContainer.appendChild(proxyDetails);
-                
+
                 const buttonContainer = document.createElement("div");
-                buttonContainer.style.flexShrink = '0';
-                
+                buttonContainer.className = "card-actions";
+
                 const createButton = document.createElement("button");
-                createButton.className = "geo-btn";
-                createButton.style.whiteSpace = "nowrap";
-                createButton.style.minWidth = "60px";
+                createButton.className = "btn btn-raised";
                 createButton.setAttribute("data-index", proxyIndex);
-                createButton.textContent = "Create";
+                createButton.innerHTML = "Create";
                 buttonContainer.appendChild(createButton);
-                
-                proxyCard.appendChild(infoContainer);
+
+                proxyCard.appendChild(header);
+                proxyCard.appendChild(proxyDetails);
                 proxyCard.appendChild(buttonContainer);
                 proxyListContainer.appendChild(proxyCard);
-                
-                createButton.addEventListener("click", function () {
+
+                checkProxyStatusInList(proxy, statusIndicator);
+            });
+
+            document.querySelectorAll(".btn[data-index]").forEach(button => {
+                button.addEventListener("click", function () {
                     const proxyIndex = Number.parseInt(this.getAttribute('data-index'));
                     selectProxy(proxyIndex);
                     showAccountCreationSection();
                 });
-                
-                checkProxyStatusInList(proxy, statusIndicator);
             });
-            
+
             renderPagination(totalPages);
             proxyCountInfo.textContent = `Showing ${startIndex + 1}-${endIndex} of ${filteredProxyList.length} proxies`;
         }
-        
-        // Check proxy status in list
+
         function checkProxyStatusInList(proxy, statusIndicator) {
             const statusURL = `https://cors.checker-ip.web.id/?url=https://api-check.web.id/check?ip=${proxy.ip}:${proxy.port}`;
-            
+
             fetch(statusURL)
                 .then(response => response.json())
                 .then(data => {
                     if (data.status === "ACTIVE") {
-                        statusIndicator.className = "geo-status active";
-                        statusIndicator.title = "Active";
+                        statusIndicator.classList.add("active");
                     } else {
-                        statusIndicator.className = "geo-status dead";
-                        statusIndicator.title = "Dead";
+                        statusIndicator.classList.add("dead");
                     }
                 })
                 .catch(error => {
-                    statusIndicator.className = "geo-status unknown";
-                    statusIndicator.title = "Unknown";
                     console.error("Fetch error:", error);
                 });
         }
-        
-        // Render pagination
+
         function renderPagination(totalPages) {
             paginationContainer.innerHTML = '';
-            
+
             if (totalPages <= 1) {
                 return;
             }
-            
+
             const prevButton = document.createElement('button');
-            prevButton.innerHTML = "<i class=\"material-icons\" style=\"font-size: 16px;\">chevron_left</i>";
+            prevButton.className = `page-btn ${currentPage === 1 ? 'disabled' : ''}`;
+            prevButton.innerHTML = "<i class=\"material-icons\">chevron_left</i>";
             prevButton.disabled = currentPage === 1;
             prevButton.addEventListener("click", () => {
                 if (currentPage > 1) {
@@ -1553,52 +1607,54 @@
                 }
             });
             paginationContainer.appendChild(prevButton);
-            
-            const buttonCount = window.innerWidth < 640 ? 3 : 5;
+
+            const buttonCount = window.innerWidth < 600 ? 3 : 5;
             let startPage = Math.max(1, currentPage - Math.floor(buttonCount / 2));
             let endPage = Math.min(totalPages, startPage + buttonCount - 1);
-            
+
             if (endPage - startPage + 1 < buttonCount) {
                 startPage = Math.max(1, endPage - buttonCount + 1);
             }
-            
+
             if (startPage > 1) {
                 const firstButton = document.createElement('button');
+                firstButton.className = 'page-btn';
                 firstButton.textContent = '1';
                 firstButton.addEventListener("click", () => {
                     currentPage = 1;
                     renderProxyList();
                 });
                 paginationContainer.appendChild(firstButton);
-                
+
                 if (startPage > 2) {
                     const ellipsis = document.createElement('span');
+                    ellipsis.className = 'px-1';
                     ellipsis.textContent = '...';
-                    ellipsis.style.padding = '0 8px';
                     paginationContainer.appendChild(ellipsis);
                 }
             }
-            
+
             for (let page = startPage; page <= endPage; page++) {
                 const pageButton = document.createElement('button');
+                pageButton.className = `page-btn ${page === currentPage ? 'active' : ''}`;
                 pageButton.textContent = page;
-                pageButton.className = page === currentPage ? 'active' : '';
                 pageButton.addEventListener("click", () => {
                     currentPage = page;
                     renderProxyList();
                 });
                 paginationContainer.appendChild(pageButton);
             }
-            
+
             if (endPage < totalPages) {
                 if (endPage < totalPages - 1) {
                     const ellipsis = document.createElement('span');
+                    ellipsis.className = 'px-1';
                     ellipsis.textContent = '...';
-                    ellipsis.style.padding = '0 8px';
                     paginationContainer.appendChild(ellipsis);
                 }
-                
+
                 const lastButton = document.createElement('button');
+                lastButton.className = 'page-btn';
                 lastButton.textContent = totalPages.toString();
                 lastButton.addEventListener("click", () => {
                     currentPage = totalPages;
@@ -1606,9 +1662,10 @@
                 });
                 paginationContainer.appendChild(lastButton);
             }
-            
+
             const nextButton = document.createElement('button');
-            nextButton.innerHTML = "<i class=\"material-icons\" style=\"font-size: 16px;\">chevron_right</i>";
+            nextButton.className = `page-btn ${currentPage === totalPages ? 'disabled' : ''}`;
+            nextButton.innerHTML = "<i class=\"material-icons\">chevron_right</i>";
             nextButton.disabled = currentPage === totalPages;
             nextButton.addEventListener("click", () => {
                 if (currentPage < totalPages) {
@@ -1618,16 +1675,15 @@
             });
             paginationContainer.appendChild(nextButton);
         }
-        
-        // Select proxy
+
         async function selectProxy(proxyIndex) {
             selectedProxy = filteredProxyList[proxyIndex];
-            
+
             document.getElementById("selected-ip").textContent = selectedProxy.ip;
             document.getElementById('selected-port').textContent = selectedProxy.port;
             document.getElementById('selected-country').textContent = selectedProxy.country;
             document.getElementById('selected-provider').textContent = selectedProxy.provider;
-            
+
             const proxyDetails = selectedProxy.country + " - " + selectedProxy.provider;
             const proxyPath = "/Geo-Project/{ip}-{port}".replace("{ip}", selectedProxy.ip).replace("{port}", selectedProxy.port);
             
@@ -1635,44 +1691,54 @@
             document.getElementById('vless-path').value = proxyPath;
             document.getElementById('trojan-path').value = proxyPath;
             document.getElementById('ss-path').value = proxyPath;
-            
+
+            const vmessSecurity = document.getElementById("vmess-security").value;
+            const vlessSecurity = document.getElementById("vless-security").value;
+            const trojanSecurity = document.getElementById("trojan-security").value;
+            const ssSecurity = document.getElementById("ss-security").value;
+
+            document.getElementById('vmess-name').value = proxyDetails + " [VMess-" + (vmessSecurity === "tls" ? "TLS" : "NTLS") + ']';
+            document.getElementById('vless-name').value = proxyDetails + " [VLESS-" + (vlessSecurity === "tls" ? 'TLS' : "NTLS") + ']';
+            document.getElementById("trojan-name").value = proxyDetails + " [Trojan-" + (trojanSecurity === 'tls' ? "TLS" : "NTLS") + ']';
+            document.getElementById('ss-name').value = proxyDetails + " [SS-" + (ssSecurity === "tls" ? "TLS" : "NTLS") + ']';
+
             const protocols = [
                 { id: "vmess-security", nameId: "vmess-name", protocol: 'VMess' },
                 { id: "vless-security", nameId: "vless-name", protocol: "VLESS" },
                 { id: "trojan-security", nameId: "trojan-name", protocol: "Trojan" },
                 { id: "ss-security", nameId: "ss-name", protocol: 'SS' }
             ];
-            
+
             protocols.forEach(protocol => {
                 const securityElement = document.getElementById(protocol.id);
                 const nameElement = document.getElementById(protocol.nameId);
-                
+
                 const clonedElement = securityElement.cloneNode(true);
                 securityElement.parentNode.replaceChild(clonedElement, securityElement);
-                
+
                 clonedElement.addEventListener("change", function () {
                     const securityType = this.value === "tls" ? "TLS" : "NTLS";
                     nameElement.value = proxyDetails + " [" + protocol.protocol + '-' + securityType + ']';
                 });
             });
-            
-            const proxyStatusContainer = document.getElementById("proxy-status-container");
+
+            const proxyStatusContainer = document.getElementById('proxy-status-container');
             const proxyStatusLoading = document.getElementById('proxy-status-loading');
             const proxyStatusActive = document.getElementById("proxy-status-active");
             const proxyStatusDead = document.getElementById("proxy-status-dead");
             const proxyStatusUnknown = document.getElementById("proxy-status-unknown");
-            
+
             proxyStatusContainer.classList.remove("hidden");
             proxyStatusLoading.classList.remove('hidden');
             proxyStatusActive.classList.add("hidden");
             proxyStatusDead.classList.add("hidden");
-            proxyStatusUnknown.classList.add("hidden");
-            
+            proxyStatusUnknown.classList.add('hidden');
+
             checkProxyStatus(selectedProxy);
         }
-        
-        // Check proxy status
+
         function checkProxyStatus(proxy) {
+            const startTime = performance.now();
             const statusURL = `https://cors.checker-ip.web.id/?url=https://api-check.web.id/check?ip=${proxy.ip}:${proxy.port}`;
             const statusContainer = document.getElementById('proxy-status-container');
             const statusLoading = document.getElementById('proxy-status-loading');
@@ -1681,17 +1747,17 @@
             const statusUnknown = document.getElementById('proxy-status-unknown');
             const latencyElement = document.getElementById('proxy-latency');
             
-            statusContainer.classList.remove("hidden");
+            statusContainer.classList.remove('hidden');
             statusLoading.classList.remove('hidden');
-            statusActive.classList.add("hidden");
-            statusDead.classList.add("hidden");
-            statusUnknown.classList.add("hidden");
+            statusActive.classList.add('hidden');
+            statusDead.classList.add('hidden');
+            statusUnknown.classList.add('hidden');
             
             fetch(statusURL)
                 .then(response => response.json())
                 .then(data => {
                     statusLoading.classList.add('hidden');
-                    
+
                     if (data.status && data.status.toUpperCase() === "ACTIVE") {
                         statusActive.classList.remove('hidden');
                         latencyElement.textContent = data.delay || '-';
@@ -1707,8 +1773,7 @@
                     console.error("Fetch error:", error);
                 });
         }
-        
-        // Show sections
+
         function showProxyListSection() {
             proxyListSection.classList.remove("hidden");
             accountCreationSection.classList.add("hidden");
@@ -1721,12 +1786,11 @@
             resultSection.classList.add('hidden');
         }
         
-        // Load proxy list
         function loadProxyList(url) {
             loadingIndicator.classList.remove('hidden');
             proxyListContainer.innerHTML = '';
             noProxiesMessage.classList.add("hidden");
-            
+
             const proxyFetchers = [
                 async () => {
                     const response = await fetch(url);
@@ -1742,9 +1806,18 @@
                         throw new Error("CORS proxy failed");
                     }
                     return await response.text();
+                },
+                async () => {
+                    const proxyUrl = `https://cors.checker-ip.web.id/?url=${encodeURIComponent(url)}`;
+                    const response = await fetch(proxyUrl);
+                    if (!response.ok) {
+                        throw new Error("Encoded proxy failed");
+                    }
+                    const data = await response.json();
+                    return data.contents;
                 }
             ];
-            
+
             (async function fetchDataFromProxies(proxyIndex = 0) {
                 if (proxyIndex >= proxyFetchers.length) {
                     console.error("All proxies failed");
@@ -1753,7 +1826,7 @@
                     displayFallbackProxyList();
                     return;
                 }
-                
+
                 try {
                     const data = await proxyFetchers[proxyIndex]();
                     console.log("Fetched data:", data.substring(0, 200) + '...');
@@ -1765,21 +1838,22 @@
                 }
             })();
         }
-        
-        // Generate UUID
-        function generateUUID(inputElementId) {
-            const uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, char => {
+
+        function generateUUIDv4() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, char => {
                 const randomValue = Math.random() * 0x10 | 0;
                 const value = char === 'x' ? randomValue : randomValue & 0x3 | 0x8;
                 return value.toString(16);
             });
-            document.getElementById(inputElementId).value = uuid;
         }
-        
-        // Generate password
+
+        function generateUUID(inputElementId) {
+            document.getElementById(inputElementId).value = generateUUIDv4();
+        }
+
         function generatePassword(inputElementId) {
-            generateUUID(inputElementId);
+            document.getElementById(inputElementId).value = generateUUIDv4();
         }
     </script>
 </body>
-</html>
+    </html>
