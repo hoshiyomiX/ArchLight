@@ -62,7 +62,11 @@ impl<'a> ProxyStream<'a> {
                             if self.backpressure_count % 100 == 0 {
                                 console_log!("Buffer full, applying backpressure (occurred {} times)", self.backpressure_count);
                             }
-                            return Poll::Pending;
+                            // Return an error instead of Poll::Pending
+                            return Err(std::io::Error::new(
+                                std::io::ErrorKind::WouldBlock,
+                                "buffer full"
+                            ));
                         }
                         self.buffer.put_slice(&data);
                         self.bytes_received += data.len() as u64;
@@ -95,24 +99,37 @@ impl<'a> ProxyStream<'a> {
 
     pub async fn process(&mut self) -> Result<()> {
         // Reduced buffer read for faster protocol detection
-        self.fill_buffer_until(PEEK_BUFFER_LEN).await?;
-        let peeked_buffer = self.peek_buffer(PEEK_BUFFER_LEN);
+        match self.fill_buffer_until(PEEK_BUFFER_LEN).await {
+            Ok(_) => {
+                let peeked_buffer = self.peek_buffer(PEEK_BUFFER_LEN);
 
-        if peeked_buffer.len() < (PEEK_BUFFER_LEN/2) {
-            return Err(Error::RustError("not enough buffer".to_string()));
-        }
+                if peeked_buffer.len() < (PEEK_BUFFER_LEN/2) {
+                    return Err(Error::RustError("not enough buffer".to_string()));
+                }
 
-        // Minimized logging - only log when protocol is detected
-        if self.is_vless(peeked_buffer) {
-            self.process_vless().await
-        } else if self.is_shadowsocks(peeked_buffer) {
-            self.process_shadowsocks().await
-        } else if self.is_trojan(peeked_buffer) {
-            self.process_trojan().await
-        } else if self.is_vmess(peeked_buffer) {
-            self.process_vmess().await
-        } else {
-            Err(Error::RustError("protocol not implemented".to_string()))
+                // Minimized logging - only log when protocol is detected
+                if self.is_vless(peeked_buffer) {
+                    self.process_vless().await
+                } else if self.is_shadowsocks(peeked_buffer) {
+                    self.process_shadowsocks().await
+                } else if self.is_trojan(peeked_buffer) {
+                    self.process_trojan().await
+                } else if self.is_vmess(peeked_buffer) {
+                    self.process_vmess().await
+                } else {
+                    Err(Error::RustError("protocol not implemented".to_string()))
+                }
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                // Handle backpressure by waiting and retrying
+                console_log!("Buffer full, waiting for space...");
+                // In a real implementation, we might want to wait here
+                // For now, return an error
+                Err(Error::RustError("buffer full".to_string()))
+            }
+            Err(e) => {
+                Err(Error::RustError(format!("Failed to fill buffer: {}", e)))
+            }
         }
     }
 
