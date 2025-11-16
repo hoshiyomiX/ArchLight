@@ -57,26 +57,32 @@ impl <'a> ProxyStream<'a> {
         self.write(&[0u8; 2]).await?;
         self.flush().await?;
 
+        // Clone addr for error message since handle_tcp_outbound takes ownership
+        let addr_clone = addr.clone();
+        
         // Handle the outbound TCP connection
         if let Err(e) = self.handle_tcp_outbound(addr, port).await {
-            console_error!("TCP connection failed to {}:{} - {}", addr, port, e);
+            console_error!("TCP connection failed to {}:{} - {}", addr_clone, port, e);
             return Err(e);
         }
 
-        console_log!("TCP connection established to {}:{}", addr, port);
+        console_log!("TCP connection established to {}:{}", addr_clone, port);
         Ok(())
     }
 
     async fn handle_udp_connection(&mut self, addr: String, port: u16) -> Result<()> {
         console_log!("Establishing UDP connection to {}:{}", addr, port);
         
+        // Clone addr for error message since handle_udp_outbound might take ownership
+        let addr_clone = addr.clone();
+        
         // Handle the outbound UDP connection
         if let Err(e) = self.handle_udp_outbound().await {
-            console_error!("UDP connection failed to {}:{} - {}", addr, port, e);
+            console_error!("UDP connection failed to {}:{} - {}", addr_clone, port, e);
             return Err(e);
         }
 
-        console_log!("UDP connection established to {}:{}", addr, port);
+        console_log!("UDP connection established to {}:{}", addr_clone, port);
         Ok(())
     }
 }
