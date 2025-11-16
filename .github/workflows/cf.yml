@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v4.1.1
 
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@1.82.0  # Updated to 1.82.0 to support wasm-bindgen-cli dependencies
+        uses: dtolnay/rust-toolchain@1.83.0
         with:
           targets: wasm32-unknown-unknown
 
@@ -41,10 +41,10 @@ jobs:
             ${{ runner.os }}-worker-build-
 
       - name: Install wasm-bindgen-cli
-        run: cargo install -f wasm-bindgen-cli --version 0.2.100
+        run: cargo install -f wasm-bindgen-cli --version 0.2.100 --locked
 
       - name: Install worker-build
-        run: cargo install -q worker-build --version 0.0.14
+        run: cargo install -q worker-build --version 0.0.15 --locked  # Updated to latest available version
 
       - name: Poison the cache
         run: |
