@@ -9,10 +9,10 @@ use pretty_bytes::converter::convert;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt, ReadBuf};
 use worker::*;
 
-// Optimized buffer sizes for better performance
-static MAX_WEBSOCKET_SIZE: usize = 16 * 1024; // Reduced from 64kb to 16kb
-static MAX_BUFFER_SIZE: usize = 128 * 1024; // Reduced from 512kb to 128kb
-static PEEK_BUFFER_LEN: usize = 16; // Reduced from 62 to 16 bytes for protocol detection
+// Increased buffer sizes for better compatibility
+static MAX_WEBSOCKET_SIZE: usize = 64 * 1024; // 64kb (increased back)
+static MAX_BUFFER_SIZE: usize = 512 * 1024; // 512kb (increased back)
+static PEEK_BUFFER_LEN: usize = 16; // Reduced for faster protocol detection
 
 pin_project! {
     pub struct ProxyStream<'a> {
@@ -107,30 +107,58 @@ impl<'a> ProxyStream<'a> {
                     return Err(Error::RustError("not enough buffer".to_string()));
                 }
 
-                // Minimized logging - only log when protocol is detected
+                // Debug logging - log first 16 bytes to understand traffic pattern
+                console_log!("First 16 bytes: {:?}", peeked_buffer);
+
+                // Protocol detection with fallback
                 if self.is_vless(peeked_buffer) {
+                    console_log!("vless detected!");
                     self.process_vless().await
                 } else if self.is_shadowsocks(peeked_buffer) {
+                    console_log!("shadowsocks detected!");
                     self.process_shadowsocks().await
                 } else if self.is_trojan(peeked_buffer) {
+                    console_log!("trojan detected!");
                     self.process_trojan().await
                 } else if self.is_vmess(peeked_buffer) {
+                    console_log!("vmess detected!");
                     self.process_vmess().await
+                } else if self.is_http(peeked_buffer) {
+                    console_log!("http detected!");
+                    self.handle_direct_proxy().await
                 } else {
-                    Err(Error::RustError("protocol not implemented".to_string()))
+                    // Fallback to direct proxy for unrecognized protocols
+                    console_log!("unrecognized protocol, using direct proxy");
+                    self.handle_direct_proxy().await
                 }
             }
             Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
                 // Handle backpressure by waiting and retrying
                 console_log!("Buffer full, waiting for space...");
-                // In a real implementation, we might want to wait here
-                // For now, return an error
                 Err(Error::RustError("buffer full".to_string()))
             }
             Err(e) => {
                 Err(Error::RustError(format!("Failed to fill buffer: {}", e)))
             }
         }
+    }
+
+    // Add HTTP detection for regular web traffic
+    fn is_http(&self, buffer: &[u8]) -> bool {
+        if buffer.len() < 3 {
+            return false;
+        }
+        
+        // Check for common HTTP methods
+        buffer.starts_with(b"GET ") || 
+        buffer.starts_with(b"POST ") || 
+        buffer.starts_with(b"PUT ") || 
+        buffer.starts_with(b"DELETE ") || 
+        buffer.starts_with(b"HEAD ") ||
+        buffer.starts_with(b"OPTIONS ") ||
+        buffer.starts_with(b"CONNECT ") ||
+        // Check for HTTP/2 client connection preface
+        buffer.starts_with(b"PRI * HTTP/2.0")
     }
 
     pub fn is_vless(&self, buffer: &[u8]) -> bool {
@@ -168,13 +196,27 @@ impl<'a> ProxyStream<'a> {
         buffer.len() >= 1 && buffer[0] == 1
     }
 
+    // Add direct proxy handling for HTTP/HTTPS and unrecognized protocols
+    pub async fn handle_direct_proxy(&mut self) -> Result<()> {
+        // For direct proxy, use the configured proxy address and port
+        let target_addr = self.config.proxy_addr.clone();
+        let target_port = self.config.proxy_port;
+        
+        console_log!("Direct proxy to {}:{}", target_addr, target_port);
+        
+        self.handle_tcp_outbound(target_addr, target_port).await
+    }
+
     pub async fn handle_tcp_outbound(&mut self, addr: String, port: u16) -> Result<()> {
-        // Minimized logging - only log on error or significant events
+        console_log!("Connecting to TCP {}:{}", addr, port);
+        
         let mut remote_socket = Socket::builder().connect(&addr, port).map_err(|e| {
+            console_error!("Failed to connect to {}:{}: {}", addr, port, e);
             Error::RustError(format!("Failed to connect to {}:{}: {}", addr, port, e))
         })?;
 
         remote_socket.opened().await.map_err(|e| {
+            console_error!("Failed to open connection to {}:{}: {}", addr, port, e);
             Error::RustError(format!("Failed to open connection to {}:{}: {}", addr, port, e))
         })?;
 
